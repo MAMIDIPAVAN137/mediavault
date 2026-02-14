@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="v-container">
+    <div class="v-section" style="max-width: 1200px; margin: 0 auto;">
+        <div class="v-section-header">
+            <div>
+                <h1 class="v-section-title">Media Management</h1>
+                <p style="color: var(--text-secondary); margin: 0;">Total uploaded items: {{ media_count }} ({{
+                    uploader_count }} Uploaders)</p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <a href="{% url 'admin_dashboard' %}" class="v-btn v-btn-secondary">Back to Dashboard</a>
+            </div>
+        </div>
+
+        <div
+            style="background: var(--card-bg); border-radius: var(--card-radius); border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow-md);">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: var(--bg-color); border-bottom: 2px solid var(--border-color);">
+                    <tr>
+                        <th
+                            style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Media Info</th>
+                        <th
+                            style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Uploader</th>
+                        <th
+                            style="text-align: center; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Typ / Visibility</th>
+                        <th
+                            style="text-align: center; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Stats</th>
+                        <th
+                            style="text-align: right; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in media_items %}
+                    <tr style="border-bottom: 1.5px solid var(--border-color); transition: background 0.2s;"
+                        class="media-row">
+                        <td style="padding: 18px 24px;">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div
+                                    style="width: 60px; height: 60px; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid var(--border-color);">
+                                    {% if p.media_type == 'IMAGE' %}
+                                    <img src="{{ p.file.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                    {% elif p.media_type == 'VIDEO' %}
+                                    <div
+                                        style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; background: #2D3748;">
+                                        🎬</div>
+                                    {% else %}
+                                    <div
+                                        style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; background: #4A5568;">
+                                        📄</div>
+                                    {% endif %}
+                                </div>
+                                <div style="max-width: 250px;">
+                                    <p
+                                        style="margin: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        {{ p.title }}</p>
+                                    <p style="margin: 0; font-size: 12px; color: var(--text-secondary);">Size: {{
+                                        p.file.size|filesizeformat }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 18px 24px;">
+                            <a href="{% url 'user_profile' p.uploader.username %}"
+                                style="text-decoration: none; color: var(--accent-color); font-weight: 600;">{{
+                                p.uploader.username }}</a>
+                        </td>
+                        <td style="padding: 18px 24px; text-align: center;">
+                            <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">
+                                <span
+                                    style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">{{
+                                    p.media_type }}</span>
+                                {% if p.is_private %}
+                                <span
+                                    style="background: #FEEBC8; color: #975A16; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700;">PRIVATE</span>
+                                {% else %}
+                                <span
+                                    style="background: #E6FFFA; color: #234E52; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700;">PUBLIC</span>
+                                {% endif %}
+                                {% if p.is_hidden %}
+                                <span
+                                    style="background: #FED7D7; color: #9B2C2E; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700;">HIDDEN</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td style="padding: 18px 24px; text-align: center;">
+                            <div
+                                style="display: flex; gap: 12px; justify-content: center; font-size: 13px; color: var(--text-secondary);">
+                                <span>👁️ {{ p.views_count|default:0 }}</span>
+                                <span>❤️ {{ p.likes.count|default:0 }}</span>
+                            </div>
+                        </td>
+                        <td
+                            style="padding: 18px 24px; text-align: right; color: var(--text-secondary); font-size: 13px;">
+                            {{ p.created_at|date:"M d, Y" }}<br>
+                            <span style="font-size: 11px;">{{ p.created_at|date:"H:i" }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="padding: 40px; text-align: center; color: var(--text-secondary);">No
+                            media items found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .media-row:hover {
+        background: rgba(0, 0, 0, 0.02);
+    }
+</style>
+{% endblock %}

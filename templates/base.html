@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MediaVault{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=3">
+    <script>
+        // Immediate check to prevent flash of light theme
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.addEventListener("DOMContentLoaded", function () {
+                document.body.classList.add('dark');
+            });
+        }
+    </script>
+</head>
+
+<body data-is-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-theme-preference="{{ user.theme_preference|default:'LIGHT' }}"
+    class="{% if not user.is_superuser and not is_own %}v-protected-body{% endif %}">
+    <header class="header">
+        <!-- Left: Logo -->
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 240px;">
+            <a href="{% url 'home' %}" style="text-decoration: none; display: flex; align-items: center; gap: 12px;">
+                <div
+                    style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-color), var(--accent-hover)); border-radius: 12px; color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; box-shadow: 0 4px 12px rgba(91, 95, 199, 0.3);">
+                    V
+                </div>
+                <span
+                    style="font-weight: 800; font-size: 22px; color: var(--text-primary); letter-spacing: -0.5px;">MediaVault</span>
+            </a>
+        </div>
+
+        <!-- Center: Search -->
+        <div style="flex: 1; max-width: 500px; display: flex; justify-content: center; position: relative;">
+            <form action="{% url 'home' %}" method="get" style="width: 100%; position: relative;">
+                <i class="fas fa-search"
+                    style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); opacity: 0.6; pointer-events: none;"></i>
+                <input type="text" name="q" placeholder="Search media, folders, or creators..." class="fluent-input"
+                    style="margin-bottom: 0; background-color: var(--input-bg); color: var(--text-primary); height: 42px; border: 1.5px solid var(--border-color); width: 100%; padding: 0 16px 0 48px; border-radius: 12px; font-size: 14px; font-weight: 500; transition: all 0.2s;"
+                    value="{{ query|default:'' }}">
+            </form>
+        </div>
+
+        <!-- Right: Nav -->
+        <div class="nav-links">
+            <a href="{% url 'home' %}" class="nav-item active">
+                <i class="fas fa-house"></i>
+                <span>Home</span>
+            </a>
+
+            {% if user.is_authenticated %}
+            {% if user.is_uploader or user.is_superuser %}
+            <button class="nav-item v-btn v-btn-secondary"
+                onclick="document.getElementById('upload-modal').classList.add('active')"
+                style="background: none; border: none; font-family: inherit;">
+                <i class="fas fa-cloud-arrow-up"></i>
+                <span>Upload</span>
+            </button>
+            {% endif %}
+
+            {% if user.is_superuser %}
+            <a href="{% url 'admin_dashboard' %}" class="nav-item" style="color: var(--accent-color);">
+                <i class="fas fa-user-shield"></i>
+                <span>Admin</span>
+            </a>
+            {% endif %}
+
+            <!-- Theme Toggle -->
+            <button onclick="toggleTheme()" id="theme-toggle" class="v-btn v-btn-secondary"
+                style="padding: 0; width: 40px; height: 40px; border-radius: 12px; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                <i class="fas fa-sun theme-sun" style="display: none; color: #FFD700;"></i>
+                <i class="fas fa-moon theme-moon" style="display: inline; color: var(--text-secondary);"></i>
+            </button>
+
+            <!-- Notifications -->
+            <div style="position: relative;">
+                <button class="v-btn v-btn-secondary" onclick="toggleNotifications(event)"
+                    style="padding: 0; width: 40px; height: 40px; font-size: 18px; display: flex; align-items: center; justify-content: center; border-radius: 12px; position: relative;">
+                    <i class="fas fa-bell"></i>
+                    {% if notifications and notifications.count > 0 %}
+                    <span
+                        style="background: var(--danger); color: white; border-radius: 10px; padding: 0 4px; font-size: 10px; position: absolute; top: 0; right: 0; min-width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2.5px solid var(--card-bg); line-height: 1;">
+                        {{ notifications.count }}
+                    </span>
+                    {% endif %}
+                </button>
+                <!-- Notification Dropdown -->
+                <div id="notif-dropdown" class="v-card"
+                    style="display: none; width: 340px; position: absolute; right: 0; top: 52px; max-height: 480px; overflow: hidden; z-index: 2000; box-shadow: var(--shadow-lg); border-radius: 16px;">
+                    <div
+                        style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-color);">
+                        <h4 style="margin: 0; font-size: 15px; font-weight: 800;">Notifications</h4>
+                        {% if notifications and notifications.count > 0 %}
+                        <span style="font-size: 12px; font-weight: 700; color: var(--accent-color); cursor: pointer;"
+                            onclick="markAllRead()">Mark all as read</span>
+                        {% endif %}
+                    </div>
+                    <div id="notif-list" style="overflow-y: auto; max-height: 480px;">
+                        {% for notif in notifications %}
+                        <div class="v-notif-item {% if not notif.is_read %}unread{% endif %}"
+                            style="padding: 18px 20px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                <div
+                                    style="width: 32px; height: 32px; background: rgba(91, 95, 199, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--accent-color); flex-shrink: 0;">
+                                    {% if notif.notification_type == 'FOLLOW_REQUEST' %}
+                                    <i class="fas fa-user-plus" style="font-size: 14px;"></i>
+                                    {% elif notif.notification_type == 'LIKE' %}
+                                    <i class="fas fa-heart" style="font-size: 14px;"></i>
+                                    {% else %}
+                                    <i class="fas fa-bell" style="font-size: 14px;"></i>
+                                    {% endif %}
+                                </div>
+                                <div style="flex: 1;">
+                                    <div
+                                        style="font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.4; margin-bottom: 4px;">
+                                        {{ notif.message }}
+                                    </div>
+                                    <div
+                                        style="font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; font-weight: 500;">
+                                        <i class="fas fa-clock" style="font-size: 10px; opacity: 0.5;"></i> {{
+                                        notif.created_at|timesince }} ago
+                                    </div>
+                                </div>
+                            </div>
+                            {% if notif.notification_type == 'FOLLOW_REQUEST' %}
+                            <div style="display: flex; gap: 8px; margin-top: 6px; padding-left: 44px;">
+                                <button class="v-btn v-btn-primary"
+                                    style="font-size: 11px; height: 30px; padding: 0 14px; border-radius: 8px; font-weight: 700;"
+                                    onclick="acceptFollow('{{ notif.sender.id }}')">Accept</button>
+                                <button class="v-btn v-btn-secondary"
+                                    style="font-size: 11px; height: 30px; padding: 0 14px; border-radius: 8px; font-weight: 700;">Ignore</button>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <div style="padding: 60px 24px; text-align: center; color: var(--text-secondary);">
+                            <div
+                                style="width: 56px; height: 56px; background: var(--bg-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+                                <i class="fas fa-bell-slash" style="font-size: 24px; opacity: 0.3;"></i>
+                            </div>
+                            <p style="font-size: 14px; margin: 0; font-weight: 600;">All caught up!</p>
+                            <p style="font-size: 12px; margin: 4px 0 0 0; opacity: 0.7;">No new notifications right now.
+                            </p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile & Logout Combo -->
+            <div style="display: flex; align-items: center; gap: 8px; margin-left: 8px;">
+                <a href="{% url 'profile' %}" class="v-btn v-btn-secondary"
+                    style="padding: 4px; border-radius: 12px; display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--border-color); background: var(--bg-color);"
+                    title="View Profile">
+                    {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}"
+                        style="width: 32px; height: 32px; border-radius: 10px; object-fit: cover;">
+                    {% else %}
+                    <div
+                        style="width: 32px; height: 32px; background: var(--accent-color); color: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;">
+                        {{ user.username|make_list|first|upper }}
+                    </div>
+                    {% endif %}
+                </a>
+                <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="v-btn v-btn-secondary"
+                        style="width: 40px; height: 40px; padding: 0; border-radius: 12px; color: var(--danger); border-color: rgba(209, 52, 56, 0.2);">
+                        <i class="fas fa-power-off"></i>
+                    </button>
+                </form>
+            </div>
+
+            {% else %}
+            <div style="display: flex; gap: 12px;">
+                <a href="{% url 'login' %}" class="nav-item">Login</a>
+                <a href="{% url 'signup' %}" class="v-btn v-btn-primary"
+                    style="height: 40px; border-radius: 10px; padding: 0 24px;">Sign Up</a>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="v-main-wrapper">
+        <main class="container" style="flex: 1;">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="v-card v-alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %}"
+                style="margin-bottom: 24px;">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+        </main>
+
+        <footer class="v-footer">
+            <div class="v-footer-content">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div
+                        style="width: 28px; height: 28px; background: var(--accent-color); border-radius: 8px; color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;">
+                        V</div>
+                    <span style="font-weight: 700; font-size: 16px; color: var(--text-primary);">MediaVault</span>
+                    <span style="font-size: 13px; color: var(--text-secondary); margin-left: 12px;">&copy; 2026. All
+                        rights reserved.</span>
+                </div>
+                <div class="v-footer-links">
+                    <a href="#" class="v-footer-link">Privacy Policy</a>
+                    <a href="#" class="v-footer-link">Terms of Service</a>
+                    <a href="#" class="v-footer-link">Support</a>
+                    <a href="#" class="v-footer-link">API Docs</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Advanced Upload Modal -->
+    <div id="upload-modal" class="v-modal-overlay">
+        <div class="v-modal-content"
+            style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden;">
+            <!-- Modal Header -->
+            <div class="v-modal-header"
+                style="padding: 24px 32px; margin-bottom: 0; border-bottom: 1px solid var(--border-color); background: var(--bg-color);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div
+                        style="width: 40px; height: 40px; background: rgba(91, 95, 199, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--accent-color);">
+                        <i class="fas fa-cloud-arrow-up" style="font-size: 18px;"></i>
+                    </div>
+                    <h3 style="margin: 0; font-size: 20px; font-weight: 800; color: var(--heading-color);">Upload Media
+                    </h3>
+                </div>
+                <button onclick="closeUploadModal()" class="v-modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div style="padding: 32px; overflow-y: auto; flex: 1;">
+                <!-- Drop Zone -->
+                <div id="drop-zone"
+                    style="border: 2px dashed var(--border-color); border-radius: 20px; padding: 64px 32px; text-align: center; background-color: var(--bg-color); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; position: relative; overflow: hidden;">
+                    <div style="font-size: 64px; color: var(--accent-color); margin-bottom: 24px; opacity: 0.3;">
+                        <i class="fas fa-cloud-arrow-up"></i>
+                    </div>
+                    <h4 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 800; color: var(--text-primary);">Drag
+                        & drop files or folders here</h4>
+                    <p style="color: var(--text-secondary); margin: 0 0 40px 0; font-size: 14px; font-weight: 500;">
+                        High-speed uploads. Supports Images, Videos, and Docs.</p>
+
+                    <div style="display: flex; gap: 12px; justify-content: center;">
+                        <button onclick="document.getElementById('file-input').click()" class="v-btn v-btn-secondary"
+                            style="height: 44px; border-radius: 12px; padding: 0 24px;">
+                            <i class="fas fa-file-circle-plus"></i> Browse Files
+                        </button>
+                        <button onclick="document.getElementById('folder-input').click()" class="v-btn v-btn-secondary"
+                            style="height: 44px; border-radius: 12px; padding: 0 24px;">
+                            <i class="fas fa-folder-plus"></i> Browse Folders
+                        </button>
+                    </div>
+
+                    <!-- Hidden Inputs -->
+                    <input type="file" id="file-input" multiple style="display: none;">
+                    <input type="file" id="folder-input" webkitdirectory directory style="display: none;">
+                </div>
+
+                <!-- Upload List / Progress -->
+                <div id="upload-queue" style="margin-top: 32px; display: none;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 4px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-list-ul" style="color: var(--accent-color);"></i>
+                            <h5 style="margin: 0; font-size: 15px; font-weight: 800;">Upload Queue</h5>
+                        </div>
+                        <span id="upload-status-text"
+                            style="font-size: 13px; font-weight: 700; color: var(--accent-color); background: rgba(91, 95, 199, 0.1); padding: 4px 12px; border-radius: 20px;">0/0</span>
+                    </div>
+                    <div id="queue-items"
+                        style="display: flex; flex-direction: column; gap: 12px; max-height: 280px; overflow-y: auto; padding: 4px;">
+                        <!-- Items will be injected here -->
+                    </div>
+                    <div
+                        style="margin-top: 32px; text-align: right; border-top: 1px solid var(--border-color); padding-top: 24px;">
+                        <button id="start-upload-btn" onclick="processQueue()" class="v-btn v-btn-primary"
+                            style="display: none; width: 100%; height: 52px; border-radius: 16px; font-size: 16px; font-weight: 800;">
+                            <i class="fas fa-rocket"></i> Start Uploading
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cropper Modal -->
+    <div id="cropper-modal" class="v-modal-overlay">
+        <div class="v-modal-content" style="max-width: 800px; padding: 0; overflow: hidden;">
+            <div class="v-modal-header"
+                style="padding: 24px 32px; margin-bottom: 0; border-bottom: 1px solid var(--border-color); background: var(--bg-color);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div
+                        style="width: 40px; height: 40px; background: rgba(91, 95, 199, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--accent-color);">
+                        <i class="fas fa-crop-simple" style="font-size: 18px;"></i>
+                    </div>
+                    <h3 style="margin: 0; font-size: 20px; font-weight: 800;">Perfect Crop</h3>
+                </div>
+                <button onclick="closeCropper()" class="v-modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div style="padding: 32px;">
+                <div
+                    style="height: 480px; background: var(--bg-color); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); margin-bottom: 24px; position: relative;">
+                    <img id="image-to-crop" style="max-width: 100%; display: block;">
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button onclick="closeCropper()" class="v-btn v-btn-secondary"
+                        style="height: 44px; border-radius: 12px; padding: 0 24px;">Cancel</button>
+                    <button onclick="saveCrop()" class="v-btn v-btn-primary"
+                        style="height: 44px; border-radius: 12px; padding: 0 24px;">
+                        <i class="fas fa-check"></i> Apply Crop
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load CropperJS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <!-- Selection Bar -->
+    <div id="bulk-actions-bar" class="bulk-actions-bar" style="display: none;">
+        <div style="font-weight: 700; color: var(--accent-color);"><span id="selected-count">0</span> items selected
+        </div>
+        <div style="width: 1px; height: 24px; background: var(--border-color);"></div>
+        <button onclick="clearSelection()" class="v-btn v-btn-secondary"
+            style="height: 32px; padding: 0 16px;">Cancel</button>
+        <button onclick="bulkDelete()" class="v-btn v-btn-danger" style="height: 32px; padding: 0 16px;">🗑️ Delete
+            All</button>
+    </div>
+
+    <script>
+        // --- Content Protection (Detection & Prevention) ---
+        const isProtected = document.body.classList.contains('v-protected-body');
+
+        function enableProtection() { if (isProtected) document.body.classList.add('protected-content'); }
+        function disableProtection() { document.body.classList.remove('protected-content'); }
+
+        // Block Right Click & Copy-Paste (Only if protected)
+        if (isProtected) {
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.addEventListener('copy', e => e.preventDefault());
+            document.addEventListener('cut', e => e.preventDefault());
+            document.addEventListener('paste', e => e.preventDefault());
+
+            // Block Keyboard Shortcuts (Ctrl+C, V, S, U, P, Shift+I)
+            document.addEventListener('keydown', e => {
+                if (e.ctrlKey && ['c', 'v', 'u', 's', 'p', 'x'].includes(e.key.toLowerCase())) e.preventDefault();
+                if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i') e.preventDefault();
+                if (e.key === 'PrintScreen') {
+                    enableProtection();
+                    alert('Privacy Warning: Screenshots and content capture are restricted on this platform.');
+                    setTimeout(disableProtection, 2000);
+                }
+            });
+
+            // Anti-Screenshot (Blur when tab focus is lost)
+            window.addEventListener('blur', enableProtection);
+            window.addEventListener('focus', disableProtection);
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) enableProtection();
+                else disableProtection();
+            });
+        }
+
+        // Global variables
+        let uploadQueue = [];
+        let isUploading = false;
+        let currentFolderId = null;
+        let cropper = null;
+        let currentCropItemIndex = -1;
+
+        // --- Theme Logic ---
+        function toggleTheme() {
+            const body = document.body;
+            body.classList.toggle('dark');
+            const isDark = body.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeIcons();
+
+            // Sync with server if logged in
+            if (document.body.getAttribute('data-is-authenticated') === 'true') {
+                const formData = new FormData();
+                formData.append('theme', isDark ? 'DARK' : 'LIGHT');
+                fetch('{% url "update-theme" %}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: formData
+                });
+            }
+        }
+
+        function updateThemeIcons() {
+            const isDark = document.body.classList.contains('dark');
+            const sun = document.querySelector('.theme-sun');
+            const moon = document.querySelector('.theme-moon');
+            if (sun && moon) {
+                sun.style.display = isDark ? 'inline' : 'none';
+                moon.style.display = isDark ? 'none' : 'inline';
+            }
+
+            // Update settings page text if elements exist
+            const settingsBtnText = document.getElementById('settings-theme-text');
+            const settingsDesc = document.getElementById('theme-desc');
+            if (settingsBtnText) {
+                settingsBtnText.innerText = isDark ? 'Switch to Light' : 'Switch to Dark';
+            }
+            if (settingsDesc) {
+                settingsDesc.innerText = isDark ? 'Currently using Dark Mode. High contrast, easy on the eyes.' : 'Currently using Light Mode. Classic look, best for bright environments.';
+            }
+        }
+
+        // Apply theme on load
+        document.addEventListener('DOMContentLoaded', () => {
+            let userPref = null;
+            if (document.body.getAttribute('data-is-authenticated') === 'true') {
+                userPref = document.body.getAttribute('data-theme-preference');
+            }
+
+            if (userPref) {
+                if (userPref === 'DARK') document.body.classList.add('dark');
+                else document.body.classList.remove('dark');
+            } else {
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark') {
+                    document.body.classList.add('dark');
+                }
+            }
+            updateThemeIcons();
+        });
+
+        // --- Selection Logic ---
+        let selectedItems = new Set(); // Stores strings like "media:12" or "folder:5"
+
+        function updateSelectionUI() {
+            const bar = document.getElementById('bulk-actions-bar');
+            const countSpan = document.getElementById('selected-count');
+
+            if (selectedItems.size > 0) {
+                bar.style.display = 'flex';
+                setTimeout(() => bar.classList.add('active'), 10);
+                countSpan.innerText = selectedItems.size;
+            } else {
+                bar.classList.remove('active');
+                setTimeout(() => { if (selectedItems.size === 0) bar.style.display = 'none'; }, 300);
+            }
+
+            // Sync card classes
+            document.querySelectorAll('.v-card').forEach(card => {
+                const id = card.getAttribute('data-id');
+                const type = card.getAttribute('data-type');
+                if (selectedItems.has(`${type}:${id}`)) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+
+        function toggleItemSelection(id, type) {
+            const key = `${type}:${id}`;
+            if (selectedItems.has(key)) {
+                selectedItems.delete(key);
+            } else {
+                selectedItems.add(key);
+            }
+            updateSelectionUI();
+        }
+
+        function clearSelection() {
+            selectedItems.clear();
+            updateSelectionUI();
+        }
+
+        async function bulkDelete() {
+            if (selectedItems.size === 0) return;
+            if (!confirm(`Are you sure you want to delete ${selectedItems.size} items? This cannot be undone.`)) return;
+
+            const items = Array.from(selectedItems).map(key => {
+                const [type, id] = key.split(':');
+                return { type, id };
+            });
+
+            try {
+                const response = await fetch('/api/media/bulk-delete/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ items })
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Bulk delete failed');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Something went wrong');
+            }
+        }
+
+        // Event listener for Ctrl + Click on v-cards
+        document.addEventListener('click', (e) => {
+            const card = e.target.closest('.v-card');
+            if (card) {
+                const id = card.getAttribute('data-id');
+                const type = card.getAttribute('data-type');
+
+                // Only allow selection for uploaded media items (exclude folders/profiles)
+                if (type !== 'media') return;
+
+                // If it's a link inside the card, don't trigger selection UNLESS Ctrl is pressed
+                const isLink = e.target.closest('a') || e.target.closest('button');
+
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleItemSelection(id, type);
+                } else if (isLink) {
+                    // Normal link click, let it happen
+                } else if (selectedItems.size > 0) {
+                    // If we are in "selection mode", normal click also toggles
+                    e.preventDefault();
+                    toggleItemSelection(id, type);
+                }
+            }
+        });
+
+        function openUploadModal() { document.getElementById('upload-modal').classList.add('active'); }
+        function closeUploadModal() {
+            if (isUploading) {
+                if (!confirm('Abort uploads?')) return;
+                isUploading = false;
+            }
+            document.getElementById('upload-modal').classList.remove('active');
+            uploadQueue = [];
+            document.getElementById('upload-queue').style.display = 'none';
+            document.getElementById('queue-items').innerHTML = '';
+        }
+
+        // Drag & Drop Handlers
+        const dropZone = document.getElementById('drop-zone');
+
+        if (dropZone) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.style.borderColor = 'var(--accent-color)';
+                    dropZone.style.backgroundColor = '#EFF6FC';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.style.borderColor = '#8A8886';
+                    dropZone.style.backgroundColor = '#FAF9F8';
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', handleDrop, false);
+        }
+
+        async function handleDrop(e) {
+            const items = e.dataTransfer.items;
+            handleFiles(items, true);
+        }
+
+        // Input Handlers
+        const fileInput = document.getElementById('file-input');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files, false);
+            });
+        }
+
+        const folderInput = document.getElementById('folder-input');
+        if (folderInput) {
+            folderInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files, false);
+            });
+        }
+
+        async function handleFiles(fileList, isDrop) {
+            const queueContainer = document.getElementById('upload-queue');
+            queueContainer.style.display = 'block';
+            document.getElementById('start-upload-btn').style.display = 'inline-block';
+
+            if (isDrop) {
+                for (let i = 0; i < fileList.length; i++) {
+                    const item = fileList[i].webkitGetAsEntry ? fileList[i].webkitGetAsEntry() : null;
+                    if (item) {
+                        traverseFileTree(item, null);
+                    } else {
+                        const file = fileList[i].getAsFile();
+                        if (file) addFileToQueue(file, null);
+                    }
+                }
+            } else {
+                for (let i = 0; i < fileList.length; i++) {
+                    const file = fileList[i];
+                    addFileToQueue(file, file.webkitRelativePath);
+                }
+            }
+        }
+
+        function addFileToQueue(file, path) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'upload-item';
+            itemDiv.style.display = 'flex';
+            itemDiv.style.alignItems = 'center';
+            itemDiv.style.justifyContent = 'space-between';
+            itemDiv.style.padding = '8px';
+            itemDiv.style.background = '#F3F2F1';
+            itemDiv.style.borderRadius = '4px';
+            itemDiv.style.fontSize = '12px';
+
+            // Check if image for crop button
+            let cropBtn = '';
+            if (file.type.startsWith('image/')) {
+                cropBtn = `<button class="btn btn-secondary" style="padding: 2px 8px; height: 24px; font-size: 11px; margin-right: 8px;" onclick="openCropper(${uploadQueue.length})">Crop / Preview</button>`;
+            }
+
+            itemDiv.innerHTML = `
+                <div style="display:flex; flex-direction:column; width:60%;">
+                    <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600;">\${file.name}</div>
+                    <div class="progress-bar" style="height:4px; background:#E1DFDD; width:100%; margin-top:4px; border-radius:2px; overflow:hidden;">
+                        <div class="progress-fill" style="height:100%; background:var(--accent-color); width:0%;"></div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center;">
+                    \${cropBtn}
+                    <span class="status-icon" style="color:var(--text-secondary);">Ready</span>
+                </div>
+            `;
+
+            document.getElementById('queue-items').appendChild(itemDiv);
+
+            uploadQueue.push({
+                file: file,
+                path: path,
+                element: itemDiv,
+                status: 'pending'
+            });
+        }
+
+        async function traverseFileTree(item, path) {
+            path = path || "";
+            if (item.isFile) {
+                item.file(function (file) {
+                    addFileToQueue(file, path + file.name);
+                });
+            } else if (item.isDirectory) {
+                const dirReader = item.createReader();
+                const readEntries = () => {
+                    dirReader.readEntries(function (entries) {
+                        if (entries.length > 0) {
+                            for (let i = 0; i < entries.length; i++) {
+                                traverseFileTree(entries[i], path + item.name + "/");
+                            }
+                            readEntries();
+                        }
+                    });
+                };
+                readEntries();
+            }
+        }
+
+        // Cropper Logic
+        function openCropper(index) {
+            const item = uploadQueue[index];
+            if (!item || !item.file.type.startsWith('image/')) return;
+
+            currentCropItemIndex = index;
+            const imgParams = document.getElementById('image-to-crop');
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                imgParams.src = e.target.result;
+                document.getElementById('cropper-modal').classList.add('active');
+
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(imgParams, {
+                    viewMode: 2,
+                });
+            };
+            reader.readAsDataURL(item.file);
+        }
+
+        function closeCropper() {
+            document.getElementById('cropper-modal').classList.remove('active');
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            currentCropItemIndex = -1;
+        }
+
+        function saveCrop() {
+            if (!cropper || currentCropItemIndex === -1) return;
+
+            cropper.getCroppedCanvas().toBlob((blob) => {
+                // Update file in queue
+                const oldItem = uploadQueue[currentCropItemIndex];
+
+                // Create new file object
+                const newFile = new File([blob], oldItem.file.name, {
+                    type: oldItem.file.type,
+                    lastModified: Date.now()
+                });
+
+                oldItem.file = newFile;
+
+                // Update UI to show 'Cropped'
+                const btn = oldItem.element.querySelector('button');
+                if (btn) {
+                    btn.innerText = "Cropped ✓";
+                    btn.style.borderColor = "var(--accent-color)";
+                    btn.style.color = "var(--accent-color)";
+                }
+
+                closeCropper();
+            }, uploadQueue[currentCropItemIndex].file.type);
+        }
+
+        async function processQueue() {
+            if (isUploading) return;
+            isUploading = true;
+
+            const parentId = currentFolderId;
+
+            // Process one by one
+            for (let i = 0; i < uploadQueue.length; i++) {
+                const item = uploadQueue[i];
+                if (item.status !== 'pending') continue;
+
+                item.status = 'uploading';
+                const progressFill = item.element.querySelector('.progress-fill');
+                const statusIcon = item.element.querySelector('.status-icon');
+                statusIcon.innerText = "Uploading...";
+                progressFill.style.width = '20%';
+
+                try {
+                    const formData = new FormData();
+                    formData.append('file', item.file);
+                    formData.append('title', item.file.name);
+
+                    if (item.path) {
+                        formData.append('relative_path', item.path);
+                    }
+                    if (parentId) {
+                        formData.append('parent_folder_id', parentId);
+                    }
+
+                    const response = await fetch('/api/media/items/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        item.status = 'completed';
+                        progressFill.style.width = '100%';
+                        statusIcon.innerHTML = '✅';
+                    } else {
+                        throw new Error('Failed');
+                    }
+
+                } catch (err) {
+                    item.status = 'error';
+                    statusIcon.innerHTML = '❌';
+                    progressFill.style.background = '#D13438';
+                }
+            }
+
+            isUploading = false;
+            if (uploadQueue.length > 0 && !uploadQueue.some(x => x.status === 'pending' || x.status === 'uploading')) {
+                setTimeout(() => {
+                    if (location.pathname.includes('profile') || location.pathname.includes('folder')) {
+                        location.reload();
+                    } else {
+                        alert('Uploads completed.');
+                        closeUploadModal();
+                    }
+                }, 500);
+            }
+        }
+
+        function toggleCardMenu(btn, itemId) {
+            const menu = document.getElementById('card-menu-' + itemId);
+            const allMenus = document.querySelectorAll('.media-card-dropdown');
+
+            allMenus.forEach(m => {
+                if (m !== menu) m.classList.remove('active');
+            });
+
+            if (menu) {
+                menu.classList.toggle('active');
+            }
+            if (window.event) {
+                window.event.preventDefault();
+                window.event.stopPropagation();
+            }
+        }
+
+        function toggleFolderMenu(btn, folderId) {
+            const menu = document.getElementById('folder-menu-' + folderId);
+            const allMenus = document.querySelectorAll('.media-card-dropdown');
+
+            allMenus.forEach(m => {
+                if (m !== menu) m.classList.remove('active');
+            });
+
+            if (menu) {
+                menu.classList.toggle('active');
+            }
+            if (window.event) {
+                window.event.preventDefault();
+                window.event.stopPropagation();
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.media-card-menu-btn') && !e.target.closest('.media-card-dropdown')) {
+                document.querySelectorAll('.media-card-dropdown').forEach(m => {
+                    if (m.id !== 'notif-dropdown') m.classList.remove('active');
+                });
+            }
+            if (!e.target.closest('#notif-dropdown') && !e.target.closest('button[onclick*="toggleNotifications"]')) {
+                const nd = document.getElementById('notif-dropdown');
+                if (nd) nd.style.display = 'none';
+            }
+        });
+
+        function toggleNotifications(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const d = document.getElementById('notif-dropdown');
+            if (d) {
+                const isHidden = d.style.display === 'none' || d.style.display === '';
+                d.style.display = isHidden ? 'block' : 'none';
+            }
+        }
+
+        async function acceptFollow(followerId) {
+            try {
+                const res = await fetch(`/api/social/follow/accept/${followerId}/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                if (res.ok) {
+                    alert('Follow request accepted!');
+                    location.reload();
+                } else {
+                    alert('Failed to accept follow request.');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function markAllRead() {
+            try {
+                const res = await fetch('/api/social/notifications/read-all/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                if (res.ok) {
+                    location.reload();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+
+</html>

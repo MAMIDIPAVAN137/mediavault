@@ -1,0 +1,503 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="v-detail-layout" style="display: flex; gap: 32px; padding: 20px 0;">
+    <!-- LEFT 75%: MAIN WORKSPACE -->
+    <div style="flex: 3; display: flex; flex-direction: column; gap: 32px; min-width: 0;">
+
+        <!-- Media Viewer -->
+        <div id="media-viewer-container"
+            style="background-color: #000; border-radius: 16px; overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 600px; max-height: 1080px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative; border: 1px solid rgba(255,255,255,0.1);">
+
+            {% if prev_item %}
+            <a href="{% url 'media-detail-page' prev_item.id %}" class="nav-overlay-btn left" title="Previous">
+                <i class="fas fa-chevron-left" style="color: white; font-size: 24px;"></i>
+            </a>
+            {% endif %}
+
+            {% if next_item %}
+            <a href="{% url 'media-detail-page' next_item.id %}" class="nav-overlay-btn right" title="Next">
+                <i class="fas fa-chevron-right" style="color: white; font-size: 24px;"></i>
+            </a>
+            {% endif %}
+
+            <button class="fullscreen-toggle" onclick="toggleFullScreen()"
+                style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; backdrop-filter: blur(8px);">
+                <i class="fas fa-expand" style="color: white; font-size: 18px;"></i>
+            </button>
+
+            {% if media.media_type == 'VIDEO' %}
+            <video id="main-video" src="{{ media.file.url }}" controls
+                style="width: 100%; height: 100%; max-height: 1080px; object-fit: contain; display: block;"></video>
+            {% else %}
+            <img id="main-image" src="{{ media.file.url }}" alt="{{ media.title }}"
+                style="width: 100%; height: 100%; max-height: 1080px; object-fit: contain; display: block; cursor: zoom-in;"
+                ondblclick="handleImageZoom(this)">
+            {% endif %}
+        </div>
+
+        <!-- Meta Info Section -->
+        <div
+            style="background-color: var(--card-bg, #1e1e1e); padding: 32px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); box-shadow: var(--shadow-md);">
+            <div style="display: flex; justify-content: space-between; align-items: start; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 300px;">
+                    <h1 style="margin: 0 0 12px 0; font-size: 28px; font-weight: 800; color: #fff; line-height: 1.2;">{{
+                        media.title }}</h1>
+                    <div
+                        style="display: flex; gap: 16px; font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
+                        <span style="display: flex; align-items: center; gap: 6px;"><i class="far fa-eye"></i> {{
+                            media.views_count }} views</span>
+                        <span>•</span>
+                        <span style="display: flex; align-items: center; gap: 6px;"><i class="far fa-calendar-alt"></i>
+                            {{ media.created_at|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    {% if user.is_authenticated %}
+                    <button class="v-action-btn {% if is_liked %}active{% endif %}" onclick="toggleLike({{ media.id }})"
+                        title="{% if is_liked %}Unlike{% else %}Like{% endif %}"
+                        style="background: {% if is_liked %}rgba(255, 75, 75, 0.15){% else %}rgba(255,255,255,0.05){% endif %}; color: {% if is_liked %}#ff4b4b{% else %}#fff{% endif %}; border: 1px solid {% if is_liked %}#ff4b4b{% else %}rgba(255,255,255,0.1){% endif %}; padding: 12px 20px; border-radius: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.3s; font-weight: 700;">
+                        <i class="{% if is_liked %}fas{% else %}far{% endif %} fa-heart" style="font-size: 18px;"></i>
+                        <span>{{ media.likes.count }}</span>
+                    </button>
+
+                    <button class="v-action-btn {% if is_favorited %}active{% endif %}"
+                        onclick="toggleFavorite({{ media.id }})"
+                        title="{% if is_favorited %}Unfavorite{% else %}Favorite{% endif %}"
+                        style="background: rgba(255,255,255,0.05); color: {% if is_favorited %}#FFD700{% else %}#fff{% endif %}; border: 1px solid {% if is_favorited %}#FFD700{% else %}rgba(255,255,255,0.1){% endif %}; width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;">
+                        <i class="{% if is_favorited %}fas{% else %}far{% endif %} fa-star"
+                            style="font-size: 18px;"></i>
+                    </button>
+
+                    <button class="v-action-btn" onclick="downloadCheck({{ media.id }})" title="Download"
+                        style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;">
+                        <i class="fas fa-download" style="font-size: 18px;"></i>
+                    </button>
+
+                    {% if user == media.uploader or user.is_superuser %}
+                    <a href="{% url 'media-delete' media.id %}" class="v-action-btn"
+                        style="background: rgba(255, 75, 75, 0.1); color: #ff4b4b; border: 1px solid rgba(255, 75, 75, 0.2); width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; text-decoration: none;"
+                        title="Delete">
+                        <i class="fas fa-trash-can" style="font-size: 18px;"></i>
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div
+                style="display: flex; align-items: center; gap: 16px; margin: 24px 0; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <div
+                    style="width: 48px; height: 48px; border-radius: 50%; background: #333; overflow: hidden; border: 2px solid var(--accent-color);">
+                    {% if media.uploader.profile_picture %}
+                    <img src="{{ media.uploader.profile_picture.url }}"
+                        style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                    <div
+                        style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                        {{ media.uploader.username|slice:":1"|upper }}</div>
+                    {% endif %}
+                </div>
+                <div style="flex: 1;">
+                    <a href="{% url 'user_profile' media.uploader.username %}"
+                        style="font-weight: 700; font-size: 17px; color: #fff; text-decoration: none;">
+                        {{ media.uploader.username }}
+                    </a>
+                    <div style="font-size: 13px; color: var(--text-secondary);">Channel Member</div>
+                </div>
+                {% if user.is_authenticated and user != media.uploader %}
+                <button class="v-btn {% if is_following %}v-btn-secondary{% else %}v-btn-accent{% endif %}"
+                    style="border-radius: 12px; padding: 10px 24px; font-weight: 700;"
+                    onclick="toggleFollow({{ media.uploader.id }})">
+                    {% if is_following %}Following{% else %}Follow{% endif %}
+                </button>
+                {% endif %}
+            </div>
+
+            <p
+                style="color: #ccc; font-size: 16px; max-width: 900px; line-height: 1.7; margin: 0; white-space: pre-wrap;">
+                {{ media.description }}</p>
+        </div>
+
+        <!-- Comments Section -->
+        <div
+            style="background-color: var(--card-bg, #1e1e1e); padding: 32px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); box-shadow: var(--shadow-md);">
+            <h3
+                style="margin: 0 0 24px 0; font-size: 20px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 12px;">
+                <i class="far fa-comment-dots" style="color: var(--accent-color);"></i>
+                Comments <span style="font-size: 15px; color: var(--text-secondary); font-weight: 400;">{{
+                    comments.count }}</span>
+            </h3>
+
+            <!-- Comment Form -->
+            <div style="margin-bottom: 40px;">
+                {% if user.is_authenticated %}
+                <form method="post" style="display: flex; flex-direction: column; gap: 16px;">
+                    {% csrf_token %}
+                    <div style="display: flex; gap: 16px; align-items: flex-start;">
+                        <div
+                            style="width: 40px; height: 40px; border-radius: 50%; background: #333; flex-shrink: 0; overflow: hidden;">
+                            {% if user.profile_picture %}
+                            <img src="{{ user.profile_picture.url }}"
+                                style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                            <div
+                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 14px;">
+                                {{ user.username|slice:":1"|upper }}</div>
+                            {% endif %}
+                        </div>
+                        <div style="flex: 1;">
+                            <textarea name="content" required placeholder="Add a comment..."
+                                style="width: 100%; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px 18px; color: #fff; font-size: 15px; min-height: 100px; resize: vertical; transition: all 0.3s; outline: none; box-sizing: border-box;"></textarea>
+                            <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+                                <button type="submit" name="comment_submit"
+                                    style="background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-size: 14px;">
+                                    Post Comment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                {% else %}
+                <div
+                    style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; text-align: center; border: 1px dashed rgba(255,255,255,0.1);">
+                    <p style="margin: 0; color: var(--text-secondary);">Please <a href="{% url 'login' %}"
+                            style="color: var(--accent-color); font-weight: 600;">log in</a> to participate in the
+                        discussion.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Comments List -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+                {% for comment in comments %}
+                <div style="display: flex; gap: 16px;">
+                    <div
+                        style="width: 40px; height: 40px; border-radius: 50%; background: #222; flex-shrink: 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+                        {% if comment.user.profile_picture %}
+                        <img src="{{ comment.user.profile_picture.url }}"
+                            style="width: 100%; height: 100%; object-fit: cover;">
+                        {% else %}
+                        <div
+                            style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 14px;">
+                            {{ comment.user.username|slice:":1"|upper }}</div>
+                        {% endif %}
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                            <strong style="font-size: 14px; color: #fff;">{{ comment.user.username }}</strong>
+                            <span style="font-size: 12px; color: var(--text-secondary);">{{ comment.created_at|timesince
+                                }} ago</span>
+                        </div>
+                        <p style="margin: 0; font-size: 14px; color: #ddd; line-height: 1.5;">{{ comment.content }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align: center; padding: 40px 0; color: var(--text-secondary);">
+                    <i class="far fa-comments" style="font-size: 40px; margin-bottom: 12px; opacity: 0.2;"></i>
+                    <p>No comments yet. Be the first to share your thoughts!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RIGHT 25%: SUGGESTIONS PANEL -->
+    <div style="flex: 1; max-width: 400px; min-width: 320px;">
+        <div
+            style="background-color: #111; border-radius: 16px; padding: 24px; box-shadow: var(--shadow-md); border: 1px solid rgba(255,255,255,0.05); position: sticky; top: 94px; max-height: calc(100vh - 120px); overflow-y: auto;">
+
+            {% if folder_items %}
+            <div style="margin-bottom: 32px;">
+                <h3
+                    style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 20px; letter-spacing: 1px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                    <i class="far fa-folder-open" style="color: var(--accent-color);"></i> In this folder
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    {% for item in folder_items %}
+                    <a href="{% url 'media-detail-page' item.id %}" class="v-sidebar-item"
+                        style="display: flex; align-items: center; gap: 16px; color: #fff; text-decoration: none; padding: 8px; border-radius: 12px; transition: all 0.3s;">
+                        <div class="v-sidebar-thumb"
+                            style="width: 90px; height: 90px; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; flex-shrink: 0; transition: transform 0.3s;">
+                            {% if item.media_type == 'IMAGE' and item.file %}
+                            <img src="{{ item.file.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% elif item.thumbnail %}
+                            <img src="{{ item.thumbnail.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                            <div
+                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #444; font-weight: 800;">
+                                {{ item.media_type|slice:":1" }}</div>
+                            {% endif %}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #eee;"
+                                title="{{ item.title }}">
+                                {{ item.title }}
+                            </div>
+                            <div
+                                style="font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                {{ item.uploader.username }}
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 24px 0;">
+            {% endif %}
+
+            <div>
+                <h3
+                    style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 20px; letter-spacing: 1px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                    <i class="far fa-star" style="color: var(--accent-color);"></i> Suggested
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    {% if related_items %}
+                    {% for item in related_items %}
+                    <a href="{% url 'media-detail-page' item.id %}" class="v-sidebar-item"
+                        style="display: flex; gap: 16px; color: #fff; text-decoration: none; padding: 8px; border-radius: 12px; transition: all 0.3s; align-items: center;">
+                        <div class="v-sidebar-thumb"
+                            style="width: 90px; height: 56px; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; flex-shrink: 0; transition: transform 0.3s;">
+                            {% if item.media_type == 'IMAGE' and item.file %}
+                            <img src="{{ item.file.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% elif item.thumbnail %}
+                            <img src="{{ item.thumbnail.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                            <div
+                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #222; color: #555; font-size: 12px; font-weight: 700;">
+                                {{ item.media_type|slice:":1" }}</div>
+                            {% endif %}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #eee;"
+                                title="{{ item.title }}">
+                                {{ item.title }}
+                            </div>
+                            <div
+                                style="font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                {{ item.uploader.username }}
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                    {% else %}
+                    {% for recent in recent_items %}
+                    <a href="{% url 'media-detail-page' recent.id %}" class="v-sidebar-item"
+                        style="display: flex; gap: 16px; color: #fff; text-decoration: none; padding: 8px; border-radius: 12px; transition: all 0.3s; align-items: center;">
+                        <div class="v-sidebar-thumb"
+                            style="width: 90px; height: 56px; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; flex-shrink: 0; transition: transform 0.3s;">
+                            {% if recent.media_type == 'IMAGE' and recent.file %}
+                            <img src="{{ recent.file.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                            <div
+                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #222; color: #555; font-size: 11px;">
+                                {{ recent.media_type|slice:":1" }}</div>
+                            {% endif %}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 13px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #eee;"
+                                title="{{ recent.title }}">
+                                {{ recent.title }}
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">
+                                {{ recent.created_at|timesince }} ago
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --card-bg: #1e1e1e;
+        --border-color: rgba(255, 255, 255, 0.08);
+        --accent-color: #3f51b5;
+        /* Standard material blue, adjust as needed */
+        --text-secondary: #aaa;
+    }
+
+    textarea:focus {
+        border-color: var(--accent-color) !important;
+        background: #222 !important;
+        box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.1);
+    }
+
+    .v-sidebar-item:hover {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+    }
+
+    .v-sidebar-item:hover .v-sidebar-thumb {
+        transform: scale(1.03);
+        border-color: var(--accent-color) !important;
+    }
+
+    .v-action-btn:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .nav-overlay-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0, 0, 0, 0.3);
+        color: white;
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        z-index: 10;
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #media-viewer-container:hover .nav-overlay-btn {
+        opacity: 1;
+    }
+
+    .nav-overlay-btn:hover {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        box-shadow: 0 0 20px rgba(63, 81, 181, 0.4);
+    }
+
+    .nav-overlay-btn.left {
+        left: 24px;
+    }
+
+    .nav-overlay-btn.right {
+        right: 24px;
+    }
+
+    .fullscreen-toggle {
+        position: absolute;
+        bottom: 24px;
+        right: 24px;
+        z-index: 10;
+        opacity: 0;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    #media-viewer-container:hover .fullscreen-toggle {
+        opacity: 1;
+    }
+
+    .fullscreen-toggle:hover {
+        background: var(--accent-color) !important;
+        transform: scale(1.1);
+    }
+
+    .zoomed {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        width: 100vw !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        background: black;
+        z-index: 9999;
+        object-fit: contain !important;
+        cursor: zoom-out !important;
+    }
+
+    /* Custom scrollbar for sidebar */
+    .v-sidebar-item-container::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .v-sidebar-item-container::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .v-sidebar-item-container::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+</style>
+
+<script>
+    async function toggleLike(id) {
+        const res = await fetch(`/api/social/like/${id}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        if (res.ok) location.reload();
+    }
+
+    async function toggleFavorite(id) {
+        const res = await fetch(`/api/social/favorite/${id}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        if (res.ok) location.reload();
+    }
+
+    async function downloadCheck(id) {
+        const res = await fetch(`/api/stats/download/${id}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            window.open(data.url, '_blank');
+            location.reload();
+        } else {
+            alert(data.error);
+        }
+    }
+
+    async function toggleFollow(userId) {
+        const res = await fetch(`/api/social/follow/${userId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert('Failed to update follow status');
+        }
+    }
+
+    function toggleFullScreen() {
+        const container = document.getElementById('media-viewer-container');
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().catch(err => {
+                const media = document.getElementById('main-image') || document.getElementById('main-video');
+                if (media) media.classList.toggle('zoomed');
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    function handleImageZoom(img) {
+        img.classList.toggle('zoomed');
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') {
+            const next = '{% if next_item %}{% url "media-detail-page" next_item.id %}{% endif %}';
+            if (next) window.location.href = next;
+        } else if (e.key === 'ArrowLeft') {
+            const prev = '{% if prev_item %}{% url "media-detail-page" prev_item.id %}{% endif %}';
+            if (prev) window.location.href = prev;
+        } else if (e.key === 'f' || e.key === 'F') {
+            toggleFullScreen();
+        }
+    });
+</script>
+{% endblock %}

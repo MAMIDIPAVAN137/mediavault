@@ -1,0 +1,475 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="v-container-full">
+    <div class="v-stable-layout">
+        <aside class="v-sidebar-fixed">
+            <div class="v-sidebar-card">
+                <h3 class="v-sidebar-title">Filters</h3>
+                <form method="GET" action="{% url 'home' %}" id="v-filter-form">
+                    {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+
+                    <div class="v-filter-group">
+                        <label class="v-filter-label">Media Type</label>
+                        <div class="v-filter-options">
+                            <label class="v-filter-option"><input type="radio" name="type" value="ALL" data-v-default><i
+                                    class="fas fa-layer-group"></i><span>All Items</span></label>
+                            <label class="v-filter-option"><input type="radio" name="type" value="VIDEO"><i
+                                    class="fas fa-video"></i><span>Videos</span></label>
+                            <label class="v-filter-option"><input type="radio" name="type" value="IMAGE"><i
+                                    class="fas fa-image"></i><span>Images</span></label>
+                            <label class="v-filter-option"><input type="radio" name="type" value="DOCUMENT"><i
+                                    class="fas fa-file-lines"></i><span>Documents</span></label>
+                        </div>
+                    </div>
+
+                    <div class="v-divider"></div>
+
+                    <div class="v-filter-group">
+                        <label class="v-filter-label">Sort By</label>
+                        <div class="v-filter-options">
+                            <label class="v-filter-option"><input type="radio" name="sort" value="date_desc"
+                                    data-v-default><i class="fas fa-sort-amount-down"></i><span>Newest</span></label>
+                            <label class="v-filter-option"><input type="radio" name="sort" value="views"><i
+                                    class="fas fa-eye"></i><span>Views</span></label>
+                            <label class="v-filter-option"><input type="radio" name="sort" value="name_asc"><i
+                                    class="fas fa-arrow-down-a-z"></i><span>Title (A-Z)</span></label>
+                            <label class="v-filter-option"><input type="radio" name="sort" value="name_desc"><i
+                                    class="fas fa-arrow-down-z-a"></i><span>Title (Z-A)</span></label>
+                        </div>
+                    </div>
+
+                    <div class="v-divider"></div>
+
+                    <div class="v-filter-group">
+                        <label class="v-filter-label">Date Added</label>
+                        <div class="v-filter-options">
+                            <label class="v-filter-option"><input type="radio" name="date" value="all" data-v-default><i
+                                    class="fas fa-infinity"></i><span>All Time</span></label>
+                            <label class="v-filter-option"><input type="radio" name="date" value="today"><i
+                                    class="fas fa-calendar-day"></i><span>Today</span></label>
+                            <label class="v-filter-option"><input type="radio" name="date" value="week"><i
+                                    class="fas fa-calendar-week"></i><span>This Week</span></label>
+                            <label class="v-filter-option"><input type="radio" name="date" value="month"><i
+                                    class="fas fa-calendar-days"></i><span>This Month</span></label>
+                        </div>
+                    </div>
+
+                    <div class="v-divider"></div>
+
+                    <div class="v-filter-group" style="margin-bottom: 0;">
+                        <a href="{% url 'home' %}" class="v-clear-all-btn">
+                            <i class="fas fa-rotate-left"></i> Clear All Filters
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </aside>
+
+        <main class="v-content-flexible">
+            {% if is_search %}
+            <div class="v-results-header">
+                <h2 class="v-page-title">Search Results</h2>
+                <div class="v-search-info">Results for <span class="v-highlight">"{{ query }}"</span></div>
+            </div>
+
+            {% if search_users or search_photos or search_videos or search_folders or search_documents %}
+            <div class="v-search-filter-bar">
+                <button class="v-search-tab active" onclick="filterSearchResults('all', this)">All</button>
+                <button class="v-search-tab" onclick="filterSearchResults('accounts', this)">Accounts</button>
+                <button class="v-search-tab" onclick="filterSearchResults('photos', this)">Photos</button>
+                <button class="v-search-tab" onclick="filterSearchResults('videos', this)">Videos</button>
+                <button class="v-search-tab" onclick="filterSearchResults('folders', this)">Folders</button>
+                <button class="v-search-tab" onclick="filterSearchResults('documents', this)">Documents</button>
+            </div>
+
+            <div id="v-search-results-container">
+                {% if search_users %}
+                <section class="v-section v-search-cat" data-cat="accounts">
+                    <h3 class="v-section-title">Accounts</h3>
+                    <div class="v-user-grid">
+                        {% for u in search_users %}
+                        <a href="{% url 'user_profile' u.username %}" class="v-user-card">
+                            {% if u.profile_picture %}<img src="{{ u.profile_picture.url }}" class="v-avatar">{% else %}
+                            <div class="v-avatar v-placeholder">{{ u.username|first|upper }}</div>{% endif %}
+                            <div class="v-user-info"><span class="v-username">{{ u.username }}</span><span
+                                    class="v-user-role">Member</span></div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+
+                {% if search_photos %}
+                <section class="v-section v-search-cat" data-cat="photos">
+                    <h3 class="v-section-title">Photos</h3>
+                    <div class="v-media-grid">
+                        {% for item in search_photos %}{% include "media/media_card.html" %}{% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+
+                {% if search_videos %}
+                <section class="v-section v-search-cat" data-cat="videos">
+                    <h3 class="v-section-title">Videos</h3>
+                    <div class="v-media-grid">
+                        {% for item in search_videos %}{% include "media/media_card.html" %}{% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+
+                {% if search_folders %}
+                <section class="v-section v-search-cat" data-cat="folders">
+                    <h3 class="v-section-title">Folders</h3>
+                    <div class="v-media-grid">
+                        {% for folder in search_folders %}
+                        {% include "media/folder_card.html" with item=folder %}
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+
+                {% if search_documents %}
+                <section class="v-section v-search-cat" data-cat="documents">
+                    <h3 class="v-section-title">Documents</h3>
+                    <div class="v-media-grid">
+                        {% for item in search_documents %}{% include "media/media_card.html" %}{% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if no_results %}
+            <div class="v-no-results">
+                <div class="v-no-results-icon">🔍</div>
+                <h3>No results found</h3>
+                <a href="{% url 'home' %}" class="v-btn-outline">Reset all filters</a>
+            </div>
+            {% endif %}
+            {% else %}
+            {% if recommended %}
+            <section class="v-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
+                    <h2 class="v-section-title" style="margin-bottom: 0;"><i class="fas fa-wand-magic-sparkles"
+                            style="color: #FFD700; margin-right: 12px;"></i>Recommended for you</h2>
+                    <a href="{% url 'all-media' %}" class="v-view-all-link">View All <i
+                            class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="v-media-grid">
+                    {% for item in recommended %}{% include "media/media_card.html" %}{% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            <section class="v-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
+                    <h2 class="v-section-title" style="margin-bottom: 0;"><i class="fas fa-clock"
+                            style="color: var(--accent-color); margin-right: 12px;"></i>Recent Uploads</h2>
+                    <a href="{% url 'all-media' %}" class="v-view-all-link">View All <i
+                            class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="v-media-grid">
+                    {% for item in recent %}{% include "media/media_card.html" %}{% endfor %}
+                </div>
+            </section>
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+<style>
+    .v-home-layout {
+        display: flex;
+        gap: 40px;
+        margin-top: 32px;
+        align-items: flex-start;
+        padding: 0 40px 0 0;
+    }
+
+    .v-filter-sidebar {
+        width: 20%;
+        min-width: 250px;
+        position: sticky;
+        top: 100px;
+    }
+
+    .v-sidebar-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 28px;
+        box-shadow: var(--shadow-md);
+        backdrop-filter: blur(10px);
+    }
+
+    .v-sidebar-title {
+        margin: 0 0 28px 0;
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--heading-color);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .v-sidebar-title::before {
+        content: "\f0b0";
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        font-size: 18px;
+        color: var(--accent-color);
+    }
+
+    .v-filter-group {
+        margin-bottom: 32px;
+    }
+
+    .v-filter-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--accent-color);
+        text-transform: uppercase;
+        margin-bottom: 20px;
+        letter-spacing: 0.1em;
+    }
+
+    .v-filter-options {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .v-filter-option {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 15px;
+        color: var(--text-primary);
+        cursor: pointer;
+        padding: 8px 12px;
+        border-radius: 10px;
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        background: transparent;
+    }
+
+    .v-filter-option:hover {
+        background: rgba(91, 95, 199, 0.05);
+        color: var(--accent-color);
+        transform: translateX(6px);
+    }
+
+    .v-filter-option input {
+        accent-color: var(--accent-color);
+        width: 18px;
+        height: 18px;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .v-divider {
+        height: 1px;
+        background: linear-gradient(to right, var(--border-color), transparent);
+        margin: 28px 0;
+    }
+
+    .v-clear-all-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        padding: 16px;
+        background: var(--input-bg);
+        border: 1.5px solid var(--border-color);
+        border-radius: 12px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .v-clear-all-btn:hover {
+        background: var(--danger);
+        color: white;
+        border-color: var(--danger);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(209, 52, 56, 0.2);
+    }
+
+    .v-results-header {
+        margin-bottom: 40px;
+        border-left: 5px solid var(--accent-color);
+        padding-left: 20px;
+    }
+
+    .v-page-title {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--heading-color);
+        margin: 0;
+    }
+
+    .v-highlight {
+        color: var(--accent-color);
+        font-weight: 700;
+    }
+
+    .v-section-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 28px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .v-section-title::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border-color);
+    }
+
+    .v-content-main {
+        flex: 1;
+        min-width: 0;
+        min-height: 800px;
+        /* Anchors the layout */
+    }
+
+    .v-search-filter-bar {
+        position: sticky;
+        top: 72px;
+        /* Header height */
+        z-index: 100;
+        background: var(--bg-color);
+        padding: 12px 0;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .v-media-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 24px;
+    }
+
+    .v-user-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 16px;
+    }
+
+    .v-user-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s;
+    }
+
+    .v-user-card:hover {
+        border-color: var(--accent-color);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .v-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .v-avatar.v-placeholder {
+        background: var(--accent-color);
+        color: #FFFFFF;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .v-no-results {
+        padding: 100px 40px;
+        text-align: center;
+        background: var(--bg-color);
+        border: 2px dashed var(--border-color);
+        border-radius: 16px;
+    }
+
+    .v-btn-outline {
+        display: inline-block;
+        margin-top: 24px;
+        padding: 12px 24px;
+        border: 2px solid var(--accent-color);
+        color: var(--accent-color);
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 700;
+    }
+
+    @media (max-width: 900px) {
+        .v-home-layout {
+            flex-direction: column;
+        }
+
+        .v-filter-sidebar {
+            width: 100% !important;
+            position: static;
+        }
+    }
+</style>
+
+<script>
+    (function () {
+        const selectedType = "{{ selected_type|default:'ALL' }}";
+        const selectedSort = "{{ selected_sort|default:'date_desc' }}";
+        const selectedDate = "{{ selected_date|default:'all' }}";
+
+        const form = document.getElementById('v-filter-form');
+        if (form) {
+            form.querySelectorAll('input[name="type"]').forEach(i => { if (i.value === selectedType) i.checked = true; });
+            form.querySelectorAll('input[name="sort"]').forEach(i => { if (i.value === selectedSort) i.checked = true; });
+            form.querySelectorAll('input[name="date"]').forEach(i => { if (i.value === selectedDate) i.checked = true; });
+
+            form.querySelectorAll('input').forEach(i => {
+                i.addEventListener('change', () => form.submit());
+            });
+        }
+    })();
+
+    function filterSearchResults(category, btn) {
+        // Update button active state
+        const buttons = document.querySelectorAll('.v-search-filter-bar .v-search-tab');
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Filter sections
+        const sections = document.querySelectorAll('.v-search-cat');
+        sections.forEach(sec => {
+            if (category === 'all' || sec.getAttribute('data-cat') === category) {
+                sec.style.display = 'block';
+            } else {
+                sec.style.display = 'none';
+            }
+        });
+
+        // Handle "No Results" visual for empty filtered state
+        const visibleSections = Array.from(sections).filter(s => s.style.display !== 'none');
+        const emptyState = document.querySelector('.v-no-results');
+        if (visibleSections.length === 0 && category !== 'all') {
+            // Should theoretically not happen if search already has results, but good to have
+        }
+    }
+</script>
+{% endblock %}

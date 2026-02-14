@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <form class="filter-form" method="get">
+
+            {% if query %}
+            <input type="hidden" name="q" value="{{ query }}">
+            {% endif %}
+
+            <!-- Media Type -->
+            <div class="filter-group">
+                <div class="filter-title">Media Type</div>
+
+                <label class="filter-option">
+                    <input type="radio" name="type" value="VIDEO" {% if selected_type == "VIDEO" %}checked{% endif %}>
+                    Video
+                </label>
+
+                <label class="filter-option">
+                    <input type="radio" name="type" value="IMAGE" {% if selected_type == "IMAGE" %}checked{% endif %}>
+                    Image
+                </label>
+            </div>
+
+            <!-- Sort -->
+            <div class="filter-group">
+                <div class="filter-title">Sort By</div>
+
+                <label class="filter-option">
+                    <input type="radio" name="sort" value="date_desc" {% if not selected_sort or selected_sort == "date_desc" %}checked{% endif %}>
+                    Latest
+                </label>
+
+                <label class="filter-option">
+                    <input type="radio" name="sort" value="views" {% if selected_sort == "views" %}checked{% endif %}>
+                    Most Viewed
+                </label>
+
+                <label class="filter-option">
+                    <input type="radio" name="sort" value="name_asc" {% if selected_sort == "name_asc" %}checked{% endif %}>
+                    Name (A-Z)
+                </label>
+            </div>
+
+            <!-- Date -->
+            <div class="filter-group">
+                <div class="filter-title">Date</div>
+
+                <label class="filter-option">
+                    <input type="radio" name="date" value="" {% if not selected_date %}checked{% endif %}>
+                    Any time
+                </label>
+
+                <label class="filter-option">
+                    <input type="radio" name="date" value="today" {% if selected_date == "today" %}checked{% endif %}>
+                    Today
+                </label>
+
+                <label class="filter-option">
+                    <input type="radio" name="date" value="week" {% if selected_date == "week" %}checked{% endif %}>
+                    This Week
+                </label>
+
+                <label class="filter-option">
+                    <input type="radio" name="date" value="month" {% if selected_date == "month" %}checked{% endif %}>
+                    This Month
+                </label>
+            </div>
+
+            <a href="{% url 'home' %}" class="clear-filters">
+                Clear Filters
+            </a>
+
+        </form>
+    </aside>
+
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+        {% if is_filtered %}
+        <div class="hero">
+            <h1>Search Results</h1>
+            {% if query %}
+            <p>Showing results for "{{ query }}"</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if folders %}
+        <section>
+            <h3>Folders</h3>
+            <div class="grid">
+                {% for folder in folders %}
+                <a href="{% url 'folder_detail' folder.id %}" class="folder-card">
+                    <div>📁</div>
+                    <div>{{ folder.name }}</div>
+                    <div>{{ folder.media_items.count }} items</div>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <section>
+            <div class="grid">
+                {% for item in items %}
+                {% include "media/media_card.html" %}
+                {% empty %}
+                <p>No results found.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% if not is_filtered %}
+        {% if featured %}
+        <section>
+            <h2>Featured</h2>
+            <div class="grid">
+                {% for item in featured %}
+                {% include "media/media_card.html" %}
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if trending %}
+        <section>
+            <h2>Trending</h2>
+            <div class="grid">
+                {% for item in trending %}
+                {% include "media/media_card.html" %}
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if recent %}
+        <section>
+            <h2>Recent Uploads</h2>
+            <div class="grid">
+                {% for item in recent %}
+                {% include "media/media_card.html" %}
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+        {% endif %}
+
+    </div>
+</div>
+
+
+<script>
+    document.querySelectorAll(".filter-option input").forEach(input => {
+        input.addEventListener("change", function () {
+            this.closest("form").submit();
+        });
+    });
+</script>
+
+{% endblock %}

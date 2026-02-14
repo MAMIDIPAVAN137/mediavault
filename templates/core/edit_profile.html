@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="v-container">
+    <div class="v-form-card" style="max-width: 650px;">
+        <h1 class="v-section-title" style="margin-bottom: 32px; text-align: center;">
+            {% if is_admin_edit %}Admin: Edit Profile for {{ edit_user.username }}{% else %}Edit Profile{% endif %}
+        </h1>
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Avatar Upload -->
+            <div style="text-align: center; margin-bottom: 40px;">
+                <div style="position: relative; width: 150px; height: 150px; margin: 0 auto;">
+                    <div id="avatar-container"
+                        style="width: 100%; height: 100%; border-radius: 50%; overflow: hidden; border: 4px solid white; box-shadow: var(--shadow-md); background: #FAF9F8;">
+                        {% with u=edit_user|default:user %}
+                        {% if u.profile_picture %}
+                        <img id="avatar-preview" src="{{ u.profile_picture.url }}"
+                            style="width: 100%; height: 100%; object-fit: cover;">
+                        {% else %}
+                        <div id="avatar-placeholder"
+                            style="width: 100%; height: 100%; background: var(--accent-color); color: white; display: flex; align-items: center; justify-content: center; font-size: 64px; font-weight: 800;">
+                            {{ u.username|first|upper }}
+                        </div>
+                        <img id="avatar-preview" src="#"
+                            style="display:none; width: 100%; height: 100%; object-fit: cover;">
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                    {% if not is_admin_edit %}
+                    <label for="id_profile_picture"
+                        style="position: absolute; bottom: 0; right: 0; background: var(--accent-color); color: white; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid var(--card-bg); box-shadow: var(--shadow-md); transition: transform 0.2s;">
+                        <i class="fas fa-camera" style="font-size: 18px;"></i>
+                    </label>
+                    {% endif %}
+                </div>
+                {% if not is_admin_edit %}
+                <p style="font-size: 13px; color: var(--text-secondary); margin-top: 12px; font-weight: 600;">Click the
+                    icon to change your photo</p>
+                {% endif %}
+            </div>
+
+            <div class="v-form-fields">
+                {% for field in form %}
+                {% if field.name != 'profile_picture' %}
+                <div
+                    class="v-form-group {% if field.field.widget.input_type == 'checkbox' %}v-checkbox-group{% endif %}">
+                    {% if field.field.widget.input_type == 'checkbox' %}
+                    <div
+                        style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: #FAF9F8; border-radius: var(--border-radius); border: 1.5px solid #EDEBE9;">
+                        <div style="padding-top: 2px;">{{ field }}</div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label class="v-label" for="{{ field.id_for_label }}"
+                                style="margin: 0; font-weight: 700; cursor: pointer;">{{ field.label }}</label>
+                            {% if field.help_text %}
+                            <small class="helptext" style="margin: 0; opacity: 0.8;">{{ field.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <label class="v-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    <div class="v-input-wrapper" style="position: relative;">
+                        {{ field }}
+                        {% if field.field.widget.input_type == 'password' or field.name == 'new_password' %}
+                        <button type="button" class="pwd-toggle"
+                            onclick="togglePasswordVisibility('{{ field.id_for_label }}')"
+                            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 8px;">
+                            <i class="fas fa-eye eye-icon"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% if field.help_text %}
+                    <small class="helptext">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% endif %}
+
+                    {% for error in field.errors %}
+                    <small
+                        style="display: block; margin-top: 4px; color: var(--danger); font-size: 13px; font-weight: 600;">{{
+                        error }}</small>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="display: none;">{{ field }}</div>
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 40px;">
+                <button type="submit" class="v-btn v-btn-primary" style="flex: 1;">Save Changes</button>
+                <a href="{% if is_admin_edit %}{% url 'user_profile' edit_user.username %}{% else %}{% url 'profile' %}{% endif %}"
+                    class="v-btn v-btn-secondary" style="flex: 1;">Cancel</a>
+            </div>
+        </form>
+
+        {% if not is_admin_edit %}
+        <div style="margin-top: 48px; padding-top: 32px; border-top: 2px solid #FAF9F8;">
+            <div class="v-section-header">
+                <h3 style="font-size: 18px; font-weight: 800; margin: 0;">Account Security</h3>
+            </div>
+            <a href="{% url 'password_change' %}" class="v-btn v-btn-secondary" style="width: 100%; margin-top: 16px;">
+                <span>Change Password</span>
+            </a>
+        </div>
+
+        <div
+            style="margin-top: 32px; padding: 24px; border-radius: var(--card-radius); background: #FDE7E9; border: 1.5px solid #FAD2D4;">
+            <h3 style="color: var(--danger); font-size: 18px; font-weight: 800; margin-top: 0;">Danger Zone</h3>
+            <p style="color: #6E2D30; font-size: 14px; margin-bottom: 20px;">Once you delete your account, there is no
+                going back. All your uploads will be permanently removed.</p>
+            <form action="{% url 'delete_account' %}" method="POST"
+                onsubmit="return confirm('WARNING: Are you sure you want to delete your account? This action is irreversible.')">
+                {% csrf_token %}
+                <button type="submit" class="v-btn v-btn-danger"
+                    style="width: 100%; border: 1.5px solid var(--danger);">
+                    Delete Account Permanently
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <div style="margin-top: 48px; padding-top: 32px; border-top: 2px solid #FAF9F8; text-align: center;">
+            <p style="color: var(--text-secondary); font-size: 14px;">Administrators can manage full account details
+                including permissions.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* Styling for the form inputs within the v-system */
+    .v-form-group input,
+    .v-form-group textarea,
+    .v-form-group select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1.5px solid var(--border-color);
+        border-radius: var(--border-radius);
+        font-size: 15px;
+        transition: all 0.2s;
+        background: var(--input-bg);
+        color: var(--text-primary);
+        font-family: inherit;
+    }
+
+    .v-form-group input:focus,
+    .v-form-group textarea:focus,
+    .v-form-group select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        background: var(--input-focus-bg);
+        box-shadow: 0 0 0 4px rgba(91, 95, 199, 0.1);
+    }
+
+    .pwd-toggle:hover {
+        background: rgba(0, 0, 0, 0.05) !important;
+        border-radius: 50%;
+        transform: translateY(-50%) scale(1.1);
+    }
+</style>
+
+<script>
+    // Image preview logic
+    const fileInput = document.getElementById('id_profile_picture');
+    const avatarPreview = document.getElementById('avatar-preview');
+    const avatarPlaceholder = document.getElementById('avatar-placeholder');
+
+    function togglePasswordVisibility(fieldId) {
+        const field = document.getElementById(fieldId);
+        const btn = field.parentElement.querySelector('.eye-icon');
+        if (field.type === 'password') {
+            field.type = 'text';
+            btn.classList.remove('fa-eye');
+            btn.classList.add('fa-eye-slash');
+        } else {
+            field.type = 'password';
+            btn.classList.remove('fa-eye-slash');
+            btn.classList.add('fa-eye');
+        }
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    avatarPreview.src = e.target.result;
+                    avatarPreview.style.display = 'block';
+                    if (avatarPlaceholder) avatarPlaceholder.style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+</script>
+{% endblock %}

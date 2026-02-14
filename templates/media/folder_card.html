@@ -1,0 +1,51 @@
+<div class="v-card v-card-folder" data-id="{{ folder.id }}" data-type="folder">
+    <a href="{% url 'folder_detail' folder.id %}" class="v-card-thumb">
+        {% if folder.effective_cover %}
+        <img src="{{ folder.effective_cover }}" alt="{{ folder.name }}" class="v-card-img">
+        {% else %}
+        <div class="v-folder-icon"><i class="fas fa-folder"></i></div>
+        {% endif %}
+
+        <div class="v-card-badge-container">
+            <div class="v-badge">Folder</div>
+        </div>
+    </a>
+
+    <div class="v-card-body">
+        <a href="{% url 'folder_detail' folder.id %}" class="v-card-title">{{ folder.name }}</a>
+
+        <div class="v-card-footer">
+            <div class="v-uploader-info">
+                {% if folder.owner.profile_picture %}
+                <img src="{{ folder.owner.profile_picture.url }}" class="v-mini-avatar"
+                    alt="{{ folder.owner.username }}">
+                {% else %}
+                <div class="v-mini-avatar">{{ folder.owner.username|first|upper }}</div>
+                {% endif %}
+                <span>{{ folder.owner.username }}</span>
+            </div>
+
+            <div class="v-card-stats">
+                {{ folder.media_items.count }} items
+            </div>
+        </div>
+    </div>
+
+    {% if is_owner or user.is_superuser %}
+    <div class="media-card-menu-btn"
+        onclick="event.preventDefault(); event.stopPropagation(); toggleFolderMenu(this, '{{ folder.id }}')">
+        <i class="fas fa-ellipsis-v"></i>
+    </div>
+    <div id="folder-menu-{{ folder.id }}" class="media-card-dropdown" onclick="event.stopPropagation();">
+        <a href="{% url 'folder-edit' folder.id %}"><i class="fas fa-pen-to-square"></i> Rename</a>
+        <form action="{% url 'folder-delete' folder.id %}" method="POST"
+            onsubmit="return confirm('Delete folder and all its contents?')">
+            {% csrf_token %}
+            <button type="submit"
+                style="color: var(--danger); width: 100%; text-align: left; background: none; border: none; padding: 12px; cursor: pointer; font-family: inherit; font-size: 14px; display: flex; align-items: center; gap: 10px; border-radius: 8px;">
+                <i class="fas fa-trash-can"></i> Delete
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>

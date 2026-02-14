@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="v-container">
+    <div class="v-section" style="max-width: 1000px; margin: 0 auto;">
+        <div class="v-section-header">
+            <h1 class="v-section-title">Upload Requests</h1>
+            <p style="color: var(--text-secondary); margin: 0;">Review and approve user requests to become uploaders.
+            </p>
+        </div>
+
+        {% if requests %}
+        <div
+            style="background: var(--card-bg); border-radius: var(--card-radius); border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow-md);">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: var(--bg-color); border-bottom: 2px solid var(--border-color);">
+                    <tr>
+                        <th
+                            style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            User</th>
+                        <th
+                            style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Message</th>
+                        <th
+                            style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Date</th>
+                        <th
+                            style="text-align: right; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr style="border-bottom: 1.5px solid var(--border-color); transition: background 0.2s;">
+                        <td style="padding: 18px 24px;">
+                            <a href="{% url 'user_profile' req.user.username %}"
+                                style="text-decoration: none; color: var(--accent-color); font-weight: 700; display: flex; align-items: center; gap: 12px;">
+                                <div
+                                    style="width: 32px; height: 32px; border-radius: 50%; background: var(--bg-color); color: var(--accent-color); display: flex; align-items: center; justify-content: center; font-size: 14px; border: 1px solid var(--border-color);">
+                                    {{ req.user.username|first|upper }}
+                                </div>
+                                {{ req.user.username }}
+                            </a>
+                        </td>
+                        <td style="padding: 18px 24px; color: var(--text-primary); font-size: 14px;">{{ req.message }}
+                        </td>
+                        <td style="padding: 18px 24px; color: var(--text-secondary); font-size: 13px;">{{
+                            req.created_at|date:"M d, Y" }}</td>
+                        <td style="padding: 18px 24px; text-align: right;">
+                            <form method="post" style="display: flex; gap: 8px; justify-content: flex-end;">
+                                {% csrf_token %}
+                                <input type="hidden" name="request_id" value="{{ req.id }}">
+                                <button type="submit" name="action" value="approve" class="v-btn v-btn-primary"
+                                    style="padding: 6px 16px; font-size: 12px; height: 32px;">Approve</button>
+                                <button type="submit" name="action" value="reject" class="v-btn v-btn-secondary"
+                                    style="padding: 6px 16px; font-size: 12px; height: 32px; border-color: var(--danger); color: var(--danger) !important;">Reject</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div
+            style="text-align: center; padding: 60px 24px; background: var(--card-bg); border-radius: var(--card-radius); border: 1.5px solid var(--border-color);">
+            <div style="font-size: 48px; margin-bottom: 24px;">✨</div>
+            <h2 style="font-weight: 800; color: var(--heading-color); margin: 0 0 8px 0;">All caught up!</h2>
+            <p style="color: var(--text-secondary); font-size: 15px;">There are no pending uploader requests.</p>
+        </div>
+        {% endif %}
+
+        <!-- Reported Problems Section -->
+        <div class="v-section-header" style="margin-top: 64px;">
+            <h1 class="v-section-title" style="color: #F6AD55;">Reported Problems</h1>
+            <p style="color: var(--text-secondary); margin: 0;">Users who are facing issues and need support.</p>
+        </div>
+
+        {% if problems %}
+        <div
+            style="background: var(--card-bg); border-radius: var(--card-radius); border: 1.5px solid #F6AD55; overflow: hidden; box-shadow: var(--shadow-md);">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: rgba(246, 173, 85, 0.05); border-bottom: 2px solid #F6AD55;">
+                    <tr>
+                        <th
+                            style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            User</th>
+                        <th
+                            style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Problem Details</th>
+                        <th
+                            style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Reported Date</th>
+                        <th
+                            style="text-align: right; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in problems %}
+                    <tr style="border-bottom: 1.5px solid var(--border-color); transition: background 0.2s;">
+                        <td style="padding: 18px 24px;">
+                            <a href="{% url 'user_profile' p.user.username %}"
+                                style="text-decoration: none; color: var(--accent-color); font-weight: 700; display: flex; align-items: center; gap: 12px;">
+                                <div
+                                    style="width: 32px; height: 32px; border-radius: 50%; background: var(--bg-color); color: var(--accent-color); display: flex; align-items: center; justify-content: center; font-size: 14px; border: 1px solid var(--border-color);">
+                                    {{ p.user.username|first|upper }}
+                                </div>
+                                {{ p.user.username }}
+                            </a>
+                        </td>
+                        <td
+                            style="padding: 18px 24px; color: var(--text-primary); font-size: 14px; max-width: 400px; line-height: 1.6;">
+                            {{ p.message }}</td>
+                        <td style="padding: 18px 24px; color: var(--text-secondary); font-size: 13px;">{{
+                            p.created_at|date:"M d, Y H:i" }}</td>
+                        <td style="padding: 18px 24px; text-align: right;">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="problem_id" value="{{ p.id }}">
+                                <button type="submit" name="action" value="resolve_problem" class="v-btn v-btn-primary"
+                                    style="padding: 6px 16px; font-size: 12px; height: 32px; background: #68D391; border-color: #68D391;">Mark
+                                    Resolved</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div
+            style="text-align: center; padding: 40px 24px; background: var(--card-bg); border-radius: var(--card-radius); border: 1.5px solid var(--border-color);">
+            <p style="color: var(--text-secondary); font-size: 15px; margin: 0;">No active problems reported.</p>
+        </div>
+        {% endif %}
+
+        <!-- History Section -->
+        <div class="v-section-header" style="margin-top: 64px;">
+            <h1 class="v-section-title">Request History</h1>
+            <p style="color: var(--text-secondary); margin: 0;">Last 20 processed requests.</p>
+        </div>
+
+        {% if history %}
+        <div
+            style="background: var(--card-bg); border-radius: var(--card-radius); border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow-sm);">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: var(--bg-color); border-bottom: 2px solid var(--border-color);">
+                    <tr>
+                        <th
+                            style="text-align: left; padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            User</th>
+                        <th
+                            style="padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; text-align: center;">
+                            Status</th>
+                        <th
+                            style="padding: 16px 24px; font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; text-align: right;">
+                            Processed Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in history %}
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 16px 24px;">
+                            <a href="{% url 'user_profile' item.user.username %}"
+                                style="text-decoration: none; color: var(--text-primary); font-weight: 600;">{{
+                                item.user.username }}</a>
+                        </td>
+                        <td style="padding: 16px 24px; text-align: center;">
+                            {% if item.is_approved %}
+                            <span
+                                style="color: var(--success); font-weight: 800; font-size: 12px; background: rgba(16, 124, 16, 0.1); padding: 4px 12px; border-radius: 20px;">APPROVED</span>
+                            {% else %}
+                            <span
+                                style="color: var(--danger); font-weight: 800; font-size: 12px; background: rgba(209, 52, 56, 0.1); padding: 4px 12px; border-radius: 20px;">REJECTED</span>
+                            {% endif %}
+                        </td>
+                        <td
+                            style="padding: 16px 24px; text-align: right; color: var(--text-secondary); font-size: 13px;">
+                            {{ item.processed_at|date:"M d, Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

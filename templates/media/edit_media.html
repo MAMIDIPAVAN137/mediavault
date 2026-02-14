@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="v-container">
+    <div class="v-section" style="max-width: 800px; margin: 0 auto;">
+        <div class="v-form-card">
+            <h2 class="v-section-title" style="margin-bottom: 24px;">Edit Media</h2>
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="v-form-group">
+                    <label class="v-label">Title</label>
+                    <input type="text" name="title" value="{{ item.title }}" class="v-input" required>
+                </div>
+
+                <div class="v-form-group">
+                    <label class="v-label">Description</label>
+                    <textarea name="description" class="v-input"
+                        style="min-height: 150px;">{{ item.description }}</textarea>
+                </div>
+
+                <div class="v-form-group">
+                    <label
+                        style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-primary); font-size: 14px; font-weight: 600;">
+                        <input type="checkbox" name="is_private" {% if item.is_private %}checked{% endif %}
+                            style="accent-color: var(--accent-color); width: 18px; height: 18px;">
+                        <span>Make this item private</span>
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 32px;">
+                    <button type="submit" class="v-btn v-btn-primary" style="flex: 1;">Save Changes</button>
+                    <a href="{% url 'media-detail-page' item.id %}" class="v-btn v-btn-secondary"
+                        style="flex: 1;">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

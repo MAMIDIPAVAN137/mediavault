@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="folder-header" style="margin-bottom: 30px;">
+    <h1>📁 {{ folder.name }}</h1>
+    <p class="breadcrumbs">
+        <a href="{% url 'profile' %}">Root</a>
+        {% for ancestor in folder.get_ancestors %}
+        / <a href="{% url 'folder_detail' ancestor.id %}">{{ ancestor.name }}</a>
+        {% endfor %}
+        / {{ folder.name }}
+    </p>
+</div>
+
+<div class="content-container" style="max-width: 100%;">
+    {% if subfolders %}
+    <section>
+        <h3>Subfolders</h3>
+        <div class="grid folders-grid">
+            {% for subfolder in subfolders %}
+            {% include "media/folder_card.html" with folder=subfolder %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section>
+        <div class="grid media-grid">
+            {% for item in media_items %}
+            {% include "media/media_card.html" with item=item %}
+            {% empty %}
+            <p>This folder is empty.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<style>
+    .grid {
+        display: grid;
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+
+    /* Edge to edge alignment handled by container in base.html if any, 
+   but specific 4 columns: */
+    .media-grid,
+    .folders-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    @media (max-width: 1024px) {
+
+        .media-grid,
+        .folders-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 600px) {
+
+        .media-grid,
+        .folders-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Breadcrumbs */
+    .breadcrumbs {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .breadcrumbs a {
+        color: #5b5fc7;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}

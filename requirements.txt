@@ -1,0 +1,5 @@
+Django>=5.0
+djangorestframework
+Pillow
+ffmpeg-python
+django-cleanup

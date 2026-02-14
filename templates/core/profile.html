@@ -1,0 +1,828 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="v-container">
+
+    <!-- Header -->
+    <div class="v-section" style="display: flex; gap: 48px; align-items: flex-start; margin-top: 40px;">
+        <div class="profile-avatar-container" style="cursor: pointer;">
+            {% if profile_user.profile_picture %}
+            <img src="{{ profile_user.profile_picture.url }}" id="profile-pic-main"
+                ondblclick="expandProfilePic('{{ profile_user.profile_picture.url }}')"
+                style="width: 180px; height: 180px; border-radius: 50%; object-fit: cover; border: 4px solid var(--card-bg); box-shadow: var(--shadow-lg);">
+            {% else %}
+            <div
+                style="width: 180px; height: 180px; border-radius: 50%; background: var(--accent-color); color: white; display: flex; align-items: center; justify-content: center; font-size: 72px; font-weight: 800; box-shadow: var(--shadow-lg);">
+                {{ profile_user.username|first|upper }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h1
+                    style="margin: 0; font-size: 32px; font-weight: 800; display: flex; align-items: center; gap: 16px;">
+                    {{ profile_user.username }}
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        {% if profile_user.is_private %}
+                        <span class="v-badge v-badge-danger" style="font-size: 12px; border-radius: 20px;">
+                            <i class="fas fa-lock"></i> Private
+                        </span>
+                        {% else %}
+                        <span class="v-badge v-badge-success" style="font-size: 12px; border-radius: 20px;">
+                            <i class="fas fa-globe"></i> Public
+                        </span>
+                        {% endif %}
+
+                        {% if is_own %}
+                        <span onclick="openUsernameModal()"
+                            style="cursor: pointer; font-size: 18px; opacity: 0.6; transition: opacity 0.2s; margin-left: 4px;"
+                            title="Edit Username"><i class="fas fa-pen-to-square"></i></span>
+                        {% endif %}
+                    </div>
+                </h1>
+                <div class="profile-actions" style="display: flex; gap: 12px; align-items: center;">
+                    {% if is_own %}
+                    <a href="{% url 'edit_profile' %}" class="v-btn v-btn-secondary">Edit Profile</a>
+                    {% elif user.is_authenticated and user.is_superuser %}
+                    <a href="{% url 'admin_edit_user' profile_user.username %}" class="v-btn v-btn-secondary">Admin:
+                        Edit Profile</a>
+                    <button
+                        class="v-btn {% if is_following or is_follow_requested %}v-btn-secondary{% else %}v-btn-primary{% endif %}"
+                        onclick="handleFollow('{{ profile_user.id }}')" id="follow-btn">
+                        {% if is_following %}Following{% elif is_follow_requested %}Requested{% else %}Follow{% endif %}
+                    </button>
+                    {% elif user.is_authenticated %}
+                    <button
+                        class="v-btn {% if is_following or is_follow_requested %}v-btn-secondary{% else %}v-btn-primary{% endif %}"
+                        onclick="handleFollow('{{ profile_user.id }}')" id="follow-btn">
+                        {% if is_following %}Following{% elif is_follow_requested %}Requested{% else %}Follow{% endif %}
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="v-card v-alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %}"
+                style="margin-bottom: 24px;">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <div class="v-stats-grid" style="margin-bottom: 24px;">
+                <div class="v-stat-card" style="cursor: pointer;"
+                    onclick="document.querySelector('[data-tab=\'uploads\']').click()">
+                    <span class="v-stat-label"><i class="fas fa-layer-group" style="margin-right: 8px;"></i>Posts</span>
+                    <span class="v-stat-value">{{ uploads_all_files.count }}</span>
+                </div>
+                <div class="v-stat-card" style="cursor: pointer;"
+                    onclick="document.querySelector('[data-tab=\'followers\']').click()">
+                    <span class="v-stat-label"><i class="fas fa-users" style="margin-right: 8px;"></i>Followers</span>
+                    <span class="v-stat-value">{{ followers_list.count }}</span>
+                </div>
+                <div class="v-stat-card" style="cursor: pointer;"
+                    onclick="document.querySelector('[data-tab=\'following\']').click()">
+                    <span class="v-stat-label"><i class="fas fa-user-plus"
+                            style="margin-right: 8px;"></i>Following</span>
+                    <span class="v-stat-value">{{ following_list.count }}</span>
+                </div>
+            </div>
+
+            <p style="font-size: 16px; color: var(--text-secondary); line-height: 1.6; max-width: 600px;">
+                {{ profile_user.bio|default:"No bio available" }}
+            </p>
+        </div>
+    </div>
+
+    {% if is_profile_private %}
+    <div
+        style="text-align: center; padding: 100px 20px; background: var(--card-bg); border-radius: 24px; margin-top: 40px; border: 1.5px solid var(--border-color); backdrop-filter: blur(10px);">
+        <div style="font-size: 64px; margin-bottom: 32px; color: var(--text-secondary);"><i class="fas fa-lock"></i>
+        </div>
+        <h2 style="font-weight: 800; margin: 0 0 12px 0; font-size: 28px;">This Profile is Private</h2>
+        <p style="color: var(--text-secondary); margin: 0 0 24px 0;">Follow this user to see their uploads and activity.
+        </p>
+        {% if not is_following and user.is_authenticated %}
+        <button class="v-btn v-btn-primary" onclick="handleFollow('{{ profile_user.id }}')">Follow to See
+            Content</button>
+        {% endif %}
+    </div>
+    {% else %}
+
+    <!-- Tabs -->
+    <div class="v-tabs" style="margin-top: 48px;">
+        <div class="v-tab active" data-tab="uploads" onclick="showTab('uploads', this)"><i
+                class="fas fa-arrow-up-from-bracket" style="margin-right: 8px;"></i>Uploads</div>
+        <div class="v-tab" data-tab="followers" onclick="showTab('followers', this)"><i class="fas fa-users"
+                style="margin-right: 8px;"></i>Followers</div>
+        <div class="v-tab" data-tab="following" onclick="showTab('following', this)"><i class="fas fa-user-plus"
+                style="margin-right: 8px;"></i>Following</div>
+        <div class="v-tab" data-tab="favorites" onclick="showTab('favorites', this)"><i class="fas fa-star"
+                style="margin-right: 8px;"></i>Favorites</div>
+        <div class="v-tab" data-tab="likes" onclick="showTab('likes', this)"><i class="fas fa-heart"
+                style="margin-right: 8px;"></i>Likes</div>
+        <div class="v-tab" data-tab="comments" onclick="showTab('comments', this)"><i class="fas fa-comment-dots"
+                style="margin-right: 8px;"></i>Comments</div>
+        {% if is_own %}
+        <div class="v-tab" data-tab="history" onclick="showTab('history', this)"><i class="fas fa-clock-rotate-left"
+                style="margin-right: 8px;"></i>History</div>
+        <div class="v-tab" data-tab="hidden" onclick="showHiddenTab(this)"><i class="fas fa-eye-slash"
+                style="margin-right: 8px;"></i>Hidden</div>
+        <div class="v-tab" data-tab="settings" onclick="showTab('settings', this)"><i class="fas fa-gear"
+                style="margin-right: 8px;"></i>Settings</div>
+        {% endif %}
+    </div>
+
+    <!-- Uploads -->
+    <div id="tab-uploads" class="tab-content active">
+        <div style="display: flex; gap: 12px; margin-bottom: 32px;">
+            <button class="v-btn v-btn-secondary active sub-tab-btn" onclick="showSubTab('all-files', this)">All
+                Files</button>
+            <button class="v-btn v-btn-secondary sub-tab-btn" onclick="showSubTab('folders', this)">Folders</button>
+            <button class="v-btn v-btn-secondary sub-tab-btn" onclick="showSubTab('direct', this)">Direct
+                Uploads</button>
+        </div>
+
+        <div id="subtab-all-files" class="sub-tab-content active">
+            <div class="v-grid">
+                {% for item in uploads_all_files %}
+                {% include "media/media_card.html" %}
+                {% empty %}
+                <p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">No files
+                    uploaded yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="subtab-folders" class="sub-tab-content" style="display: none;">
+            <div class="v-grid">
+                {% for folder in uploads_folders %}
+                {% include "media/folder_card.html" %}
+                {% empty %}
+                <p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">No
+                    folders created yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="subtab-direct" class="sub-tab-content" style="display: none;">
+            <div class="v-grid">
+                {% for item in uploads_direct %}
+                {% include "media/media_card.html" %}
+                {% empty %}
+                <p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">No direct
+                    uploads yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Followers -->
+    <div id="tab-followers" class="tab-content" style="display: none;">
+        <div class="v-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+            {% for follow in followers_list %}
+            <a href="{% url 'user_profile' follow.follower.username %}" class="v-card"
+                style="padding: 20px; text-align: center; text-decoration: none; color: inherit;">
+                {% if follow.follower.profile_picture %}
+                <img src="{{ follow.follower.profile_picture.url }}"
+                    style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 12px; object-fit: cover;">
+                {% else %}
+                <div
+                    style="width: 80px; height: 80px; border-radius: 50%; background: var(--accent-color); color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 800; margin: 0 auto 12px auto;">
+                    {{ follow.follower.username|first|upper }}
+                </div>
+                {% endif %}
+                <div style="font-weight: 700; font-size: 16px;">{{ follow.follower.username }}</div>
+            </a>
+            {% empty %}
+            <p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">No followers
+                yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Following -->
+    <div id="tab-following" class="tab-content" style="display: none;">
+        <div class="v-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+            {% for follow in following_list %}
+            <a href="{% url 'user_profile' follow.followed.username %}" class="v-card"
+                style="padding: 20px; text-align: center; text-decoration: none; color: inherit;">
+                {% if follow.followed.profile_picture %}
+                <img src="{{ follow.followed.profile_picture.url }}"
+                    style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 12px; object-fit: cover;">
+                {% else %}
+                <div
+                    style="width: 80px; height: 80px; border-radius: 50%; background: var(--accent-color); color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 800; margin: 0 auto 12px auto;">
+                    {{ follow.followed.username|first|upper }}
+                </div>
+                {% endif %}
+                <div style="font-weight: 700; font-size: 16px;">{{ follow.followed.username }}</div>
+            </a>
+            {% empty %}
+            <p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">Not following
+                anyone yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Favorites -->
+    <div id="tab-favorites" class="tab-content" style="display: none;">
+        <div class="v-grid">
+            {% for item in favorites %}
+            {% include "media/media_card.html" %}
+            {% empty %}
+            <p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">No favorites
+                yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Likes -->
+    <div id="tab-likes" class="tab-content" style="display: none;">
+        <div class="v-grid">
+            {% for item in likes %}
+            {% include "media/media_card.html" %}
+            {% empty %}
+            <p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">No likes yet.
+            </p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Comments -->
+    <div id="tab-comments" class="tab-content" style="display: none;">
+        <div style="display: flex; flex-direction: column; gap: 16px; max-width: 800px;">
+            {% for comment in comments %}
+            <div
+                style="background: var(--card-bg); padding: 20px; border-radius: var(--card-radius); border: 1px solid var(--border-color);">
+                <p style="margin: 0 0 8px 0; font-size: 13px; color: var(--text-secondary);">
+                    On <a href="{% url 'media-detail-page' comment.media_item.id %}" style="font-weight: 700;">{{
+                        comment.media_item.title }}</a>:
+                </p>
+                <p
+                    style="margin: 0; font-size: 15px; color: var(--text-primary); line-height: 1.5; font-style: italic;">
+                    "{{ comment.content }}"
+                </p>
+                <div style="margin-top: 12px; font-size: 12px; color: #A19F9D;">
+                    {{ comment.created_at|date:"M d, Y" }}
+                </div>
+            </div>
+            {% empty %}
+            <p style="text-align: center; padding: 40px; color: var(--text-secondary);">No comments made yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if is_own %}
+    <!-- History -->
+    <div id="tab-history" class="tab-content" style="display: none;">
+        <div class="v-grid">
+            {% for item in history %}
+            {% include "media/media_card.html" %}
+            {% empty %}
+            <p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">No viewing
+                history found.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Hidden -->
+    <div id="tab-hidden" class="tab-content" style="display: none;">
+        <div class="v-grid">
+            {% for item in hidden_items %}
+            {% include "media/media_card.html" %}
+            {% empty %}
+            <p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">No hidden
+                items.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div id="tab-settings" class="tab-content" style="display: none;">
+        <div class="v-settings-container">
+
+            <!-- Account Privacy -->
+            <div class="v-settings-card">
+                <div class="v-settings-header">
+                    <div class="v-settings-icon">
+                        <i class="fas fa-shield-halved"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 20px; font-weight: 800; margin: 0;">Account Privacy</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Manage how others
+                            see your profile</p>
+                    </div>
+                </div>
+
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; padding-top: 24px; border-top: 1px solid var(--border-color);">
+                    <div style="flex: 1; padding-right: 24px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                            <h4 style="margin: 0; font-weight: 800; font-size: 16px;">Private Profile</h4>
+                            {% if profile_user.is_private %}
+                            <span class="v-badge v-badge-danger"
+                                style="font-size: 10px; padding: 2px 10px; border-radius: 20px; text-transform: uppercase;">Active</span>
+                            {% else %}
+                            <span class="v-badge v-badge-success"
+                                style="font-size: 10px; padding: 2px 10px; border-radius: 20px; text-transform: uppercase;">Disabled</span>
+                            {% endif %}
+                        </div>
+                        <p style="margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5;">Only
+                            followers can see your uploads and profile details.</p>
+                    </div>
+                    <button
+                        class="v-btn {% if profile_user.is_private %}v-btn-primary{% else %}v-btn-secondary{% endif %}"
+                        id="privacy-toggle-btn" onclick="togglePrivacy()"
+                        style="min-width: 140px; height: 48px; border-radius: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        {% if profile_user.is_private %}
+                        <i class="fas fa-lock"></i>
+                        <span>Private</span>
+                        {% else %}
+                        <i class="fas fa-globe"></i>
+                        <span>Public</span>
+                        {% endif %}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Appearance -->
+            <div class="v-settings-card">
+                <div class="v-settings-header">
+                    <div class="v-settings-icon">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 20px; font-weight: 800; margin: 0;">Appearance</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Customize your
+                            viewing experience</p>
+                    </div>
+                </div>
+
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; padding-top: 24px; border-top: 1px solid var(--border-color);">
+                    <div>
+                        <h4 style="margin: 0 0 6px 0; font-weight: 800; font-size: 16px;">Theme Preference</h4>
+                        <p style="margin: 0; font-size: 14px; color: var(--text-secondary);" id="theme-desc">Switch
+                            between light and dark themes.</p>
+                    </div>
+                    <button class="v-btn v-btn-secondary" onclick="toggleTheme()" id="settings-theme-btn"
+                        style="min-width: 140px; height: 48px; border-radius: 12px; font-weight: 800;">
+                        <span id="settings-theme-text">Dark Mode</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Uploader Privileges -->
+            <div class="v-settings-card">
+                <div class="v-settings-header">
+                    <div class="v-settings-icon">
+                        <i class="fas fa-cloud-arrow-up"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 20px; font-weight: 800; margin: 0;">Uploader Privileges</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Manage your
+                            contribution status</p>
+                    </div>
+                </div>
+
+                <div style="padding-top: 24px; border-top: 1px solid var(--border-color);">
+                    {% if profile_user.is_uploader %}
+                    <div
+                        style="display: flex; align-items: center; gap: 24px; color: var(--success); background: rgba(16, 124, 16, 0.05); padding: 24px; border-radius: 20px; border: 1.5px dashed var(--success);">
+                        <i class="fas fa-circle-check" style="font-size: 40px;"></i>
+                        <div>
+                            <h4 style="margin: 0; font-weight: 800; font-size: 17px;">Creator Status Active</h4>
+                            <p
+                                style="margin: 6px 0 0 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+                                You can upload media and create folders across the platform.</p>
+                        </div>
+                    </div>
+                    {% elif pending_upload_request %}
+                    <div
+                        style="display: flex; align-items: center; gap: 24px; color: var(--accent-color); background: rgba(91, 95, 199, 0.05); padding: 24px; border-radius: 24px; border: 1.5px dashed var(--accent-color);">
+                        <i class="fas fa-clock" style="font-size: 40px;"></i>
+                        <div>
+                            <h4 style="margin: 0; font-weight: 800; font-size: 17px;">Request Pending Review</h4>
+                            <p
+                                style="margin: 6px 0 0 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+                                Our team is reviewing your application. You'll be notified soon.</p>
+                        </div>
+                    </div>
+                    {% elif upload_request_form %}
+                    <div class="v-form-container">
+                        <h4 style="margin: 0 0 12px 0; font-weight: 800; font-size: 17px;">Apply to become a Creator
+                        </h4>
+                        <p style="margin: 0 0 24px 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+                            Tell us a bit about what you plan to share with the community.</p>
+                        <form action="{% url 'request_upload_access' %}" method="POST">
+                            {% csrf_token %}
+                            <div class="v-form-group">
+                                <textarea name="{{ upload_request_form.message.name }}" class="v-form-control"
+                                    placeholder="Describe your content strategy..."
+                                    required>{{ upload_request_form.message.value|default:'' }}</textarea>
+                            </div>
+                            <button type="submit" class="v-btn v-btn-primary v-btn-full">
+                                <i class="fas fa-paper-plane"></i> Submit Application
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Support & Feedback -->
+            <div class="v-settings-card">
+                <div class="v-settings-header">
+                    <div class="v-settings-icon">
+                        <i class="fas fa-circle-question"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 20px; font-weight: 800; margin: 0;">Support & Feedback</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Help us improve
+                            your experience</p>
+                    </div>
+                </div>
+
+                <div style="padding-top: 24px; border-top: 1px solid var(--border-color);">
+                    <div class="v-form-container">
+                        <h4 style="margin: 0 0 12px 0; font-weight: 800; font-size: 17px;">Report a Problem</h4>
+                        <p style="margin: 0 0 24px 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+                            Encountering an issue? Let us know the details.</p>
+                        <form action="{% url 'report-problem' %}" method="POST">
+                            {% csrf_token %}
+                            <div class="v-form-group">
+                                <textarea name="{{ report_problem_form.message.name }}" class="v-form-control"
+                                    placeholder="Describe the issue you're facing..."
+                                    required>{{ report_problem_form.message.value|default:'' }}</textarea>
+                            </div>
+                            <button type="submit" class="v-btn v-btn-primary v-btn-full">
+                                <i class="fas fa-bug"></i> Send Report
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="v-settings-card"
+                style="border-color: rgba(209, 52, 56, 0.3); background: rgba(209, 52, 56, 0.02);">
+                <div class="v-settings-header">
+                    <div class="v-settings-icon" style="background: rgba(209, 52, 56, 0.1); color: var(--danger);">
+                        <i class="fas fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 20px; font-weight: 800; margin: 0; color: var(--danger);">Danger Zone</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Irreversible
+                            account actions</p>
+                    </div>
+                </div>
+
+                <div
+                    style="padding-top: 24px; border-top: 1px solid rgba(209, 52, 56, 0.1); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1; padding-right: 20px;">
+                        <h4 style="margin: 0 0 6px 0; font-weight: 800; color: var(--danger); font-size: 16px;">Delete
+                            Account Permanently</h4>
+                        <p style="margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5;">All your
+                            uploads, folders, and following data will be removed forever.</p>
+                    </div>
+                    <form action="{% url 'delete_account' %}" method="POST"
+                        onsubmit="return confirm('WARNING: Irreversibly delete your account? This cannot be undone.')">
+                        {% csrf_token %}
+                        <button type="submit" class="v-btn v-btn-danger"
+                            style="height: 48px; border-radius: 12px; font-weight: 800; padding: 0 24px;">
+                            Delete Account
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% endif %}
+</div>
+
+<style>
+    .sub-tab-btn.active {
+        background: var(--accent-color) !important;
+        color: white !important;
+        border-color: var(--accent-color) !important;
+    }
+
+    .v-clear-all-btn:hover {
+        background: var(--card-bg);
+        color: var(--danger);
+        border-color: var(--danger);
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(209, 52, 56, 0.1);
+    }
+</style>
+
+{% if is_own %}
+<!-- Username Edit Modal -->
+<div id="username-modal" class="v-modal-overlay">
+    <div class="v-modal-content">
+        <div class="v-modal-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div
+                    style="width: 40px; height: 40px; background: rgba(91, 95, 199, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--accent-color);">
+                    <i class="fas fa-user-pen" style="font-size: 18px;"></i>
+                </div>
+                <h3 style="margin: 0; font-weight: 800; font-size: 20px;">Edit Username</h3>
+            </div>
+            <button onclick="closeUsernameModal()" class="v-modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form action="{% url 'update-username' %}" method="POST">
+            {% csrf_token %}
+            <div style="margin-bottom: 24px;">
+                <label
+                    style="display: block; margin-bottom: 10px; font-size: 14px; font-weight: 700; color: var(--text-secondary);">New
+                    Username</label>
+                <input type="text" name="username" value="{{ profile_user.username }}" class="v-auth-input" required
+                    pattern="^[a-zA-Z0-9_\-]+$" title="Letters, numbers, underscores, and hyphens only."
+                    style="width: 100%; padding: 14px 18px; border: 1.5px solid var(--border-color); border-radius: 12px; font-size: 15px; color: var(--text-primary); background: var(--input-bg);">
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 10px; line-height: 1.4;">Username
+                    must be unique across the platform.</p>
+            </div>
+            <button type="submit" class="v-btn v-btn-primary"
+                style="width: 100%; height: 52px; border-radius: 12px; font-weight: 800;">
+                Save Changes
+            </button>
+        </form>
+    </div>
+</div>
+<!-- Privacy Confirmation Modal -->
+<div id="privacy-modal" class="v-modal-overlay">
+    <div class="v-modal-content">
+        <div class="v-modal-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div
+                    style="width: 40px; height: 40px; background: rgba(209, 52, 56, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--danger);">
+                    <i class="fas fa-shield-halved" style="font-size: 18px;"></i>
+                </div>
+                <h3 style="margin: 0; font-weight: 800; font-size: 20px;">Security Check</h3>
+            </div>
+            <button onclick="closePrivacyModal()" class="v-modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.6;">To change your
+            account privacy settings, please confirm your identity by entering your password.</p>
+        <div style="margin-bottom: 24px;">
+            <input type="password" id="privacy-password" class="v-auth-input" placeholder="Confirm Password"
+                style="width: 100%; padding: 14px 18px; border: 1.5px solid var(--border-color); border-radius: 12px; font-size: 15px; color: var(--text-primary); background: var(--input-bg);">
+            <p id="privacy-error"
+                style="display:none; color: var(--danger); font-size: 13px; margin-top: 10px; font-weight: 700; align-items: center; gap: 8px;">
+                <i class="fas fa-circle-exclamation"></i> <span class="error-text"></span>
+            </p>
+        </div>
+        <button onclick="confirmPrivacyToggle()" class="v-btn v-btn-primary"
+            style="width: 100%; height: 52px; border-radius: 12px; font-weight: 800;">
+            Verify and Confirm
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    function openUsernameModal() { document.getElementById('username-modal').classList.add('active'); }
+    function closeUsernameModal() { document.getElementById('username-modal').classList.remove('active'); }
+
+    function openPrivacyModal() {
+        document.getElementById('privacy-modal').classList.add('active');
+        document.getElementById('privacy-password').value = '';
+        document.getElementById('privacy-error').style.display = 'none';
+    }
+    function closePrivacyModal() { document.getElementById('privacy-modal').classList.remove('active'); }
+
+    // Initial setup for modals interaction
+    window.addEventListener('click', function (event) {
+        let uModal = document.getElementById('username-modal');
+        let pModal = document.getElementById('privacy-modal');
+        if (event.target == uModal) { closeUsernameModal(); }
+        if (event.target == pModal) { closePrivacyModal(); }
+    });
+
+    function expandProfilePic(url) {
+        if (!url || url === '') return;
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.background = 'rgba(0,0,0,0.9)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '9999';
+        overlay.onclick = () => document.body.removeChild(overlay);
+
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.maxWidth = '90%';
+        img.style.maxHeight = '90%';
+        img.style.borderRadius = '12px';
+        img.style.boxShadow = '0 0 50px rgba(0,0,0,0.5)';
+        img.style.cursor = 'zoom-out';
+
+        overlay.appendChild(img);
+        document.body.appendChild(overlay);
+    }
+
+    function showTab(id, el) {
+        document.querySelectorAll('.v-tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+        if (!el) {
+            el = document.querySelector(`[data-tab="${id}"]`);
+        }
+        if (el) el.classList.add('active');
+        const target = document.getElementById('tab-' + id);
+        if (target) target.style.display = 'block';
+
+        // Update URL without refresh
+        const url = new URL(window.location);
+        url.searchParams.set('tab', id);
+        window.history.pushState({}, '', url);
+    }
+
+    // Initial tab load
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab) {
+            showTab(tab);
+        }
+    });
+
+    function showSubTab(id, el) {
+        document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.sub-tab-content').forEach(c => c.style.display = 'none');
+        el.classList.add('active');
+        const target = document.getElementById('subtab-' + id);
+        if (target) target.style.display = 'block';
+    }
+
+    function togglePrivacy() {
+        openPrivacyModal();
+    }
+
+    async function confirmPrivacyToggle() {
+        const passwordField = document.getElementById('privacy-password');
+        const errorField = document.getElementById('privacy-error');
+        const password = passwordField.value;
+        const btn = document.getElementById('privacy-toggle-btn');
+
+        if (!password) {
+            errorField.innerText = 'Password is required.';
+            errorField.style.display = 'block';
+            return;
+        }
+
+        try {
+            const response = await fetch('{% url "toggle-profile-privacy" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ password: password })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                if (data.is_private) {
+                    btn.innerHTML = '<i class="fas fa-lock"></i><span>Private</span>';
+                    btn.classList.remove('v-btn-secondary');
+                    btn.classList.add('v-btn-primary');
+                } else {
+                    btn.innerHTML = '<i class="fas fa-globe"></i><span>Public</span>';
+                    btn.classList.remove('v-btn-primary');
+                    btn.classList.add('v-btn-secondary');
+                }
+                closePrivacyModal();
+                location.reload();
+            } else {
+                errorField.innerText = data.message || 'Verification failed.';
+                errorField.style.display = 'block';
+            }
+        } catch (err) {
+            console.error(err);
+            errorField.innerText = 'Something went wrong.';
+            errorField.style.display = 'block';
+        }
+    }
+
+    async function handleFollow(userId) {
+        const btn = document.getElementById('follow-btn');
+        try {
+            const response = await fetch(`/api/social/follow/${userId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await response.json();
+            if (response.ok) {
+                if (data.status === 'followed') {
+                    btn.innerText = 'Following';
+                    btn.classList.remove('v-btn-primary');
+                    btn.classList.add('v-btn-secondary');
+                } else if (data.status === 'request_sent') {
+                    btn.innerText = 'Requested';
+                    btn.classList.add('v-btn-secondary');
+                    btn.classList.remove('v-btn-primary');
+                } else {
+                    btn.innerText = 'Follow';
+                    btn.classList.remove('v-btn-secondary');
+                    btn.classList.add('v-btn-primary');
+                }
+                location.reload();
+            } else {
+                alert(data.error || 'Follow action failed');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Something went wrong');
+        }
+    }
+</script>
+
+    <!-- Password Verification Modal for Hidden Content -->
+    <div id="hidden-password-modal" class="v-modal-overlay">
+        <div class="v-modal-content" style="max-width: 400px; padding: 32px; text-align: center;">
+            <div
+                style="width: 64px; height: 64px; background: rgba(91, 95, 199, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--accent-color); margin: 0 auto 24px auto; font-size: 24px;">
+                <i class="fas fa-user-lock"></i>
+            </div>
+            <h3 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 800;">Restricted Access</h3>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Please enter your account password to unlock hidden items.</p>
+            
+            <input type="password" id="hidden-vault-pass" class="fluent-input" placeholder="Enter password" style="margin-bottom: 20px; text-align: center;">
+            
+            <div style="display: flex; gap: 12px;">
+                <button onclick="closeHiddenModal()" class="v-btn v-btn-secondary" style="flex: 1;">Cancel</button>
+                <button onclick="unlockHiddenVault()" class="v-btn v-btn-primary" style="flex: 1;">Unlock</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let hasUnlockedHidden = false;
+        let pendingHiddenTab = null;
+
+        function showHiddenTab(btn) {
+            if (hasUnlockedHidden) {
+                showTab('hidden', btn);
+                return;
+            }
+            pendingHiddenTab = btn;
+            document.getElementById('hidden-password-modal').classList.add('active');
+            document.getElementById('hidden-vault-pass').focus();
+        }
+
+        function closeHiddenModal() {
+            document.getElementById('hidden-password-modal').classList.remove('active');
+            document.getElementById('hidden-vault-pass').value = '';
+            pendingHiddenTab = null;
+        }
+
+        async function unlockHiddenVault() {
+            const pass = document.getElementById('hidden-vault-pass').value;
+            if (!pass) return;
+
+            try {
+                const res = await fetch('{% url "verify-password" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'password=' + encodeURIComponent(pass)
+                });
+
+                if (res.ok) {
+                    hasUnlockedHidden = true;
+                    if (pendingHiddenTab) showTab('hidden', pendingHiddenTab);
+                    closeHiddenModal();
+                } else {
+                    const data = await res.json();
+                    alert(data.message || 'Incorrect password. Access denied.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('An error occurred. Please try again.');
+            }
+        }
+
+        // Allow Enter key in password input
+        document.getElementById('hidden-vault-pass').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') unlockHiddenVault();
+        });
+    </script>
+{% endblock %}

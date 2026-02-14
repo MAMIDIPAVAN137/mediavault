@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="v-container">
+    <div class="v-form-card" style="max-width: 550px; text-align: center;">
+        <div
+            style="font-size: 72px; margin-bottom: 24px; color: var(--accent-color); filter: drop-shadow(0 10px 15px rgba(91, 95, 199, 0.2));">
+            <i class="fas fa-paper-plane"></i>
+        </div>
+        <h1 class="v-section-title" style="margin-bottom: 12px;">Become a Creator</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 40px; font-size: 15px; line-height: 1.6;">
+            Share your videos, images, and documents with the world. Apply for upload access today and start building
+            your portfolio.
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="v-form-group">
+                <label class="v-label" style="text-align: left;">Tell us a bit about what you want to share</label>
+                {{ form.message }}
+                {% for error in form.message.errors %}
+                <small
+                    style="display: block; margin-top: 4px; color: var(--danger); font-size: 13px; font-weight: 600; text-align: left;">{{
+                    error }}</small>
+                {% endfor %}
+            </div>
+
+            <div style="margin-top: 32px; display: flex; gap: 12px;">
+                <button type="submit" class="v-btn v-btn-primary" style="flex: 2;">Submit Request</button>
+                <a href="{% url 'profile' %}" class="v-btn v-btn-secondary" style="flex: 1;">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Styling for the textarea within the v-system */
+    textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 12px 16px;
+        border: 1.5px solid var(--border-color);
+        border-radius: var(--border-radius);
+        font-size: 15px;
+        transition: all 0.2s;
+        background: var(--input-bg);
+        color: var(--text-primary);
+        font-family: inherit;
+        resize: vertical;
+    }
+
+    textarea:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        background: var(--input-focus-bg);
+        box-shadow: 0 0 0 4px rgba(91, 95, 199, 0.1);
+    }
+</style>
+{% endblock %}

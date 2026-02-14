@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MediaVault{% endblock %}</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            background: linear-gradient(135deg, #F3F9FD 0%, #F1F6F9 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #323130;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 440px;
+            background: #FFFFFF;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            padding: 48px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #201F1E;
+        }
+
+        p.subtitle {
+            margin: 0 0 32px 0;
+            color: #605E5C;
+            font-size: 14px;
+        }
+
+        .fluent-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #8A8886;
+            border-radius: 4px;
+            font-size: 15px;
+            font-family: inherit;
+            box-sizing: border-box;
+            height: 44px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+            margin-bottom: 0;
+        }
+
+        .fluent-input:focus {
+            border-color: #0078D4;
+            box-shadow: 0 0 0 1px #0078D4;
+        }
+
+        .fluent-input::placeholder {
+            color: #605E5C;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background-color: #0078D4;
+            /* Fluent Blue */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary:hover {
+            background-color: #106EBE;
+        }
+
+        .error-msg {
+            color: #D13438;
+            font-size: 12px;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .auth-link {
+            display: inline-block;
+            font-size: 14px;
+            color: #0078D4;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-link:hover {
+            text-decoration: underline;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            color: #323130;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+
+</html>

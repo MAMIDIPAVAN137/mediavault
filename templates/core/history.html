@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-layout">
+    <h1>Watch History</h1>
+
+    <div class="grid">
+        {% for item in history_items %}
+        {% include 'media/media_card.html' with item=item %}
+        {% empty %}
+        <p>No watched items yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

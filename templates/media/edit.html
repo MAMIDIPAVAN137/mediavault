@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 40px auto;">
+    <h2 style="margin-bottom: 24px;">Edit Media</h2>
+
+    <div style="display: flex; gap: 16px; margin-bottom: 24px; padding: 12px; background: #F3F2F1; border-radius: 4px;">
+        <div
+            style="width: 80px; height: 80px; background: #E1DFDD; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            {% if media.media_type == 'IMAGE' and media.file %}
+            <img src="{{ media.file.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+            {% elif media.thumbnail %}
+            <img src="{{ media.thumbnail.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+            {% else %}
+            <div>{{ media.media_type|slice:":1" }}</div>
+            {% endif %}
+        </div>
+        <div>
+            <div style="font-weight: 600;">{{ media.title }}</div>
+            <div style="font-size: 12px; color: #605E5C; margin-top: 4px;">{{ media.media_type }}</div>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Title</label>
+            {{ form.title }}
+            {% if form.title.errors %}
+            <div style="color: #D13438; font-size: 12px; margin-top: 4px;">{{ form.title.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Category</label>
+            {{ form.category }}
+            {% if form.category.errors %}
+            <div style="color: #D13438; font-size: 12px; margin-top: 4px;">{{ form.category.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Description</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+            <div style="color: #D13438; font-size: 12px; margin-top: 4px;">{{ form.description.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
+            {{ form.is_private }}
+            <label for="{{ form.is_private.id_for_label }}" style="font-weight: 600;">Private Item</label>
+            <span style="font-size: 12px; color: var(--text-secondary);">Only visible to you.</span>
+        </div>
+
+        <div style="display: flex; gap: 16px; justify-content: flex-end;">
+            <a href="{% url 'media-detail-page' media.id %}" class="btn">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 40px auto;">
+    <h2 style="margin-bottom: 24px;">Edit Folder</h2>
+
+    <div
+        style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding: 12px; background: #F3F2F1; border-radius: 4px;">
+        <div style="width: 48px; height: 48px;">{% include 'icons/folder.html' %}</div>
+        <div style="font-weight: 600; font-size: 18px;">{{ folder.name }}</div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Folder Name</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+            <div style="color: #D13438; font-size: 12px; margin-top: 4px;">{{ form.name.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
+            {{ form.is_private }}
+            <label for="{{ form.is_private.id_for_label }}" style="font-weight: 600;">Private Folder</label>
+            <span style="font-size: 12px; color: var(--text-secondary);">Only visible to you. (Items inside must be
+                managed separately if accessed directly)</span>
+        </div>
+
+        <div style="display: flex; gap: 16px; justify-content: flex-end;">
+            <a href="{% url 'folder_detail' folder.id %}" class="btn">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
