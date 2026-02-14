@@ -20,6 +20,12 @@
                 {% if field.label %}{{ field.label }}{% else %}{{ field.name|title|cut:"_" }}{% endif %}
             </label>
             {{ field }}
+            {% if field.id_for_label == 'id_password1' or field.id_for_label == 'id_password2' %}
+            <button type="button" class="password-toggle" onclick="togglePassword('{{ field.id_for_label }}')"
+                tabindex="-1">
+                <i class="fas fa-eye"></i>
+            </button>
+            {% endif %}
             {% if field.help_text %}
             <small style="display: block; margin-top: 4px; color: var(--text-secondary); font-size: 11px;">{{
                 field.help_text|safe }}</small>
