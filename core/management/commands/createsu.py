@@ -12,7 +12,7 @@ class Command(BaseCommand):
         email = os.environ.get("ADMIN_EMAIL", "pavanmamidi1432@gmail.com")
         password = os.environ.get("ADMIN_PASSWORD", "pandu")
 
-        if not User.objects.filter(username=username).exists():
+        if not User.objects.filter(email=email).exists():
             User.objects.create_superuser(
                 username=username,
                 email=email,
@@ -20,4 +20,4 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS("Superuser created successfully"))
         else:
-            self.stdout.write("Superuser already exists")
+            self.stdout.write("Superuser already exists. Skipping creation.")
