@@ -66,11 +66,15 @@
                 <button class="main-toggle-btn" onclick="toggleDesktopSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
-                <div class="header-avatar">
+                <a href="{% url 'user_profile' other_user.username %}" class="header-avatar"
+                    style="text-decoration: none;">
                     {{ other_user.username|make_list|first|upper }}
-                </div>
+                </a>
                 <div class="header-info">
-                    <span class="header-username">{{ other_user.username }}</span>
+                    <a href="{% url 'user_profile' other_user.username %}" class="header-username"
+                        style="text-decoration: none; color: inherit;">
+                        {{ other_user.username }}
+                    </a>
                     <span id="typing-indicator" class="typing-status hidden">typing...</span>
                 </div>
             </div>
@@ -523,17 +527,18 @@
 
     .msg-row {
         display: flex;
-        max-width: 85%;
+        width: 100%;
         margin-bottom: 4px;
+        padding: 2px 10px;
+        box-sizing: border-box;
     }
 
     .msg-row.sent {
-        align-self: flex-end;
         flex-direction: row-reverse;
     }
 
     .msg-row.received {
-        align-self: flex-start;
+        justify-content: flex-start;
     }
 
     .msg-avatar {
@@ -556,6 +561,7 @@
         line-height: 1.4;
         position: relative;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        max-width: 85%;
     }
 
     .sent .msg-bubble {
@@ -603,7 +609,7 @@
     }
 
     .status-read {
-        color: var(--mv-primary);
+        color: #4caf50;
     }
 
     .message-edited-tag {
@@ -1196,7 +1202,10 @@
                     const row = document.querySelector(`.msg-row[data-id="${data.message_id}"]`);
                     if (row) {
                         const icon = row.querySelector('.msg-status i');
-                        if (icon && data.status === 'read') icon.className = 'fas fa-check-double status-read';
+                        if (icon && data.status === 'read') {
+                            icon.className = 'fas fa-check-double status-read';
+                            icon.style.color = '#4caf50';
+                        }
                     }
                 }
             };
