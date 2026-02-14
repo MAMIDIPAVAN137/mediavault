@@ -10,19 +10,19 @@
 
                 <div class="v-form-group">
                     <label class="v-label">Title</label>
-                    <input type="text" name="title" value="{{ item.title }}" class="v-input" required>
+                    <input type="text" name="title" value="{{ media.title }}" class="v-input" required>
                 </div>
 
                 <div class="v-form-group">
                     <label class="v-label">Description</label>
                     <textarea name="description" class="v-input"
-                        style="min-height: 150px;">{{ item.description }}</textarea>
+                        style="min-height: 150px;">{{ media.description }}</textarea>
                 </div>
 
                 <div class="v-form-group">
                     <label
                         style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-primary); font-size: 14px; font-weight: 600;">
-                        <input type="checkbox" name="is_private" {% if item.is_private %}checked{% endif %}
+                        <input type="checkbox" name="is_private" {% if media.is_private %}checked{% endif %}
                             style="accent-color: var(--accent-color); width: 18px; height: 18px;">
                         <span>Make this item private</span>
                     </label>
@@ -30,7 +30,7 @@
 
                 <div style="display: flex; gap: 12px; margin-top: 32px;">
                     <button type="submit" class="v-btn v-btn-primary" style="flex: 1;">Save Changes</button>
-                    <a href="{% url 'media-detail-page' item.id %}" class="v-btn v-btn-secondary"
+                    <a href="{% url 'media-detail-page' media.id %}" class="v-btn v-btn-secondary"
                         style="flex: 1;">Cancel</a>
                 </div>
             </form>

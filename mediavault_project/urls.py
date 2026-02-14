@@ -8,7 +8,7 @@ from core.views import (
     edit_profile, delete_account, admin_dashboard, admin_upload_requests,
     toggle_profile_privacy, update_theme, admin_edit_user, report_problem,
     update_username, verify_password,
-    admin_user_list, admin_media_list
+    admin_user_list, admin_media_list, search_users
 )
 
 urlpatterns = [
@@ -27,6 +27,7 @@ urlpatterns = [
     path('profile/report-problem/', report_problem, name='report-problem'),
     path('profile/username/update/', update_username, name='update-username'),
     path('profile/verify-password/', verify_password, name='verify-password'),
+    path('api/users/search/', search_users, name='search-users'),
     path('profile/<str:username>/', profile, name='user_profile'),
     
     # Password Change
@@ -49,4 +50,5 @@ urlpatterns = [
     path('upload-request/', request_upload_access, name='request_upload_access'),
     path('api/media/', include('media.urls')),
     path('api/social/', include('social.urls')),
+    path('api/stats/', include('stats.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

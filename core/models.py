@@ -13,15 +13,23 @@ class User(AbstractUser):
         ('DARK', 'Dark'),
     )
 
+    DOWNLOAD_CHOICES = (
+        ('ALL', 'All'),
+        ('FOLLOWERS', 'Followers'),
+        ('RESTRICTED', 'Required Users'),
+    )
+
     email = models.EmailField(unique=True) 
     phone_number = models.CharField(max_length=20, blank=True, unique=True, null=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, null=True)
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     bio = models.TextField(blank=True)
     theme_preference = models.CharField(max_length=10, choices=THEME_CHOICES, default='LIGHT')
+    download_preference = models.CharField(max_length=10, choices=DOWNLOAD_CHOICES, default='ALL')
     is_uploader = models.BooleanField(default=False, help_text="Designates whether the user can upload files and create folders.")
     is_public = models.BooleanField(default=True, help_text="Designates whether the profile is visible to others.")
     is_private = models.BooleanField(default=False, help_text="If true, only followers can see content.")
+    allowed_downloaders = models.ManyToManyField('self', symmetrical=False, related_name='download_access_granted', blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -35,6 +43,7 @@ class User(AbstractUser):
         if self.is_uploader:
             return "Uploader"
         return "User"
+
 
 class UploadRequest(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='upload_requests')

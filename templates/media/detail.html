@@ -38,46 +38,46 @@
 
         <!-- Meta Info Section -->
         <div
-            style="background-color: var(--card-bg, #1e1e1e); padding: 32px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); box-shadow: var(--shadow-md);">
+            style="background-color: var(--card-bg); padding: 32px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow-md);">
             <div style="display: flex; justify-content: space-between; align-items: start; gap: 20px; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 300px;">
-                    <h1 style="margin: 0 0 12px 0; font-size: 28px; font-weight: 800; color: #fff; line-height: 1.2;">{{
-                        media.title }}</h1>
+                    <h1
+                        style="margin: 0 0 12px 0; font-size: 28px; font-weight: 800; color: var(--heading-color); line-height: 1.2;">
+                        {{ media_item.title|default:media_item.id }}</h1>
                     <div
                         style="display: flex; gap: 16px; font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
                         <span style="display: flex; align-items: center; gap: 6px;"><i class="far fa-eye"></i> {{
-                            media.views_count }} views</span>
+                            media_item.views_count|default:0 }} views</span>
                         <span>•</span>
                         <span style="display: flex; align-items: center; gap: 6px;"><i class="far fa-calendar-alt"></i>
-                            {{ media.created_at|date:"M d, Y" }}</span>
+                            {{ media_item.created_at|date:"M d, Y" }}</span>
                     </div>
                 </div>
 
                 <!-- Actions -->
                 <div style="display: flex; gap: 12px; align-items: center;">
                     {% if user.is_authenticated %}
-                    <button class="v-action-btn {% if is_liked %}active{% endif %}" onclick="toggleLike({{ media.id }})"
-                        title="{% if is_liked %}Unlike{% else %}Like{% endif %}"
-                        style="background: {% if is_liked %}rgba(255, 75, 75, 0.15){% else %}rgba(255,255,255,0.05){% endif %}; color: {% if is_liked %}#ff4b4b{% else %}#fff{% endif %}; border: 1px solid {% if is_liked %}#ff4b4b{% else %}rgba(255,255,255,0.1){% endif %}; padding: 12px 20px; border-radius: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.3s; font-weight: 700;">
+                    <button class="v-action-btn like-btn {% if is_liked %}active{% endif %}"
+                        onclick="toggleLike('{{ media_item.id }}')"
+                        title="{% if is_liked %}Unlike{% else %}Like{% endif %}">
                         <i class="{% if is_liked %}fas{% else %}far{% endif %} fa-heart" style="font-size: 18px;"></i>
-                        <span>{{ media.likes.count }}</span>
+                        <span>{{ media_item.likes.count }}</span>
                     </button>
 
-                    <button class="v-action-btn {% if is_favorited %}active{% endif %}"
-                        onclick="toggleFavorite({{ media.id }})"
-                        title="{% if is_favorited %}Unfavorite{% else %}Favorite{% endif %}"
-                        style="background: rgba(255,255,255,0.05); color: {% if is_favorited %}#FFD700{% else %}#fff{% endif %}; border: 1px solid {% if is_favorited %}#FFD700{% else %}rgba(255,255,255,0.1){% endif %}; width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;">
+                    <button class="v-action-btn favorite-btn {% if is_favorited %}active{% endif %}"
+                        onclick="toggleFavorite({{ media_item.id }})"
+                        title="{% if is_favorited %}Unfavorite{% else %}Favorite{% endif %}">
                         <i class="{% if is_favorited %}fas{% else %}far{% endif %} fa-star"
                             style="font-size: 18px;"></i>
                     </button>
 
-                    <button class="v-action-btn" onclick="downloadCheck({{ media.id }})" title="Download"
-                        style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;">
+                    <button class="v-action-btn" onclick="downloadCheck({{ media_item.id }})" title="Download"
+                        style="background: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color); width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;">
                         <i class="fas fa-download" style="font-size: 18px;"></i>
                     </button>
 
-                    {% if user == media.uploader or user.is_superuser %}
-                    <a href="{% url 'media-delete' media.id %}" class="v-action-btn"
+                    {% if user == media_item.uploader or user.is_superuser %}
+                    <a href="{% url 'media-delete' media_item.id %}" class="v-action-btn"
                         style="background: rgba(255, 75, 75, 0.1); color: #ff4b4b; border: 1px solid rgba(255, 75, 75, 0.2); width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; text-decoration: none;"
                         title="Delete">
                         <i class="fas fa-trash-can" style="font-size: 18px;"></i>
@@ -88,47 +88,47 @@
             </div>
 
             <div
-                style="display: flex; align-items: center; gap: 16px; margin: 24px 0; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
+                style="display: flex; align-items: center; gap: 16px; margin: 24px 0; padding: 20px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
                 <div
                     style="width: 48px; height: 48px; border-radius: 50%; background: #333; overflow: hidden; border: 2px solid var(--accent-color);">
-                    {% if media.uploader.profile_picture %}
-                    <img src="{{ media.uploader.profile_picture.url }}"
+                    {% if media_item.uploader.profile_picture %}
+                    <img src="{{ media_item.uploader.profile_picture.url }}"
                         style="width: 100%; height: 100%; object-fit: cover;">
                     {% else %}
                     <div
                         style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
-                        {{ media.uploader.username|slice:":1"|upper }}</div>
+                        {{ media_item.uploader.username|slice:":1"|upper }}</div>
                     {% endif %}
                 </div>
                 <div style="flex: 1;">
-                    <a href="{% url 'user_profile' media.uploader.username %}"
-                        style="font-weight: 700; font-size: 17px; color: #fff; text-decoration: none;">
-                        {{ media.uploader.username }}
+                    <a href="{% url 'user_profile' media_item.uploader.username %}"
+                        style="font-weight: 700; font-size: 17px; color: var(--heading-color); text-decoration: none;">
+                        {{ media_item.uploader.username }}
                     </a>
                     <div style="font-size: 13px; color: var(--text-secondary);">Channel Member</div>
                 </div>
-                {% if user.is_authenticated and user != media.uploader %}
+                {% if user.is_authenticated and user != media_item.uploader %}
                 <button class="v-btn {% if is_following %}v-btn-secondary{% else %}v-btn-accent{% endif %}"
                     style="border-radius: 12px; padding: 10px 24px; font-weight: 700;"
-                    onclick="toggleFollow({{ media.uploader.id }})">
+                    onclick="toggleFollow({{ media_item.uploader.id }})">
                     {% if is_following %}Following{% else %}Follow{% endif %}
                 </button>
                 {% endif %}
             </div>
 
             <p
-                style="color: #ccc; font-size: 16px; max-width: 900px; line-height: 1.7; margin: 0; white-space: pre-wrap;">
-                {{ media.description }}</p>
+                style="color: var(--text-primary); font-size: 16px; max-width: 900px; line-height: 1.7; margin: 0; white-space: pre-wrap;">
+                {{ media_item.description }}</p>
         </div>
 
         <!-- Comments Section -->
         <div
-            style="background-color: var(--card-bg, #1e1e1e); padding: 32px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); box-shadow: var(--shadow-md);">
+            style="background-color: var(--card-bg); padding: 32px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow-md);">
             <h3
-                style="margin: 0 0 24px 0; font-size: 20px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 12px;">
+                style="margin: 0 0 24px 0; font-size: 20px; font-weight: 800; color: var(--heading-color); display: flex; align-items: center; gap: 12px;">
                 <i class="far fa-comment-dots" style="color: var(--accent-color);"></i>
                 Comments <span style="font-size: 15px; color: var(--text-secondary); font-weight: 400;">{{
-                    comments.count }}</span>
+                    media_comments.count }}</span>
             </h3>
 
             <!-- Comment Form -->
@@ -144,13 +144,13 @@
                                 style="width: 100%; height: 100%; object-fit: cover;">
                             {% else %}
                             <div
-                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 14px;">
+                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-primary); font-weight: bold; font-size: 14px;">
                                 {{ user.username|slice:":1"|upper }}</div>
                             {% endif %}
                         </div>
                         <div style="flex: 1;">
                             <textarea name="content" required placeholder="Add a comment..."
-                                style="width: 100%; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px 18px; color: #fff; font-size: 15px; min-height: 100px; resize: vertical; transition: all 0.3s; outline: none; box-sizing: border-box;"></textarea>
+                                style="width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px 18px; color: var(--text-primary); font-size: 15px; min-height: 100px; resize: vertical; transition: all 0.3s; outline: none; box-sizing: border-box;"></textarea>
                             <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
                                 <button type="submit" name="comment_submit"
                                     style="background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-size: 14px;">
@@ -162,7 +162,7 @@
                 </form>
                 {% else %}
                 <div
-                    style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; text-align: center; border: 1px dashed rgba(255,255,255,0.1);">
+                    style="background: var(--bg-color); padding: 20px; border-radius: 12px; text-align: center; border: 1px dashed var(--border-color);">
                     <p style="margin: 0; color: var(--text-secondary);">Please <a href="{% url 'login' %}"
                             style="color: var(--accent-color); font-weight: 600;">log in</a> to participate in the
                         discussion.</p>
@@ -172,26 +172,28 @@
 
             <!-- Comments List -->
             <div style="display: flex; flex-direction: column; gap: 24px;">
-                {% for comment in comments %}
+                {% for comment in media_comments %}
                 <div style="display: flex; gap: 16px;">
                     <div
-                        style="width: 40px; height: 40px; border-radius: 50%; background: #222; flex-shrink: 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+                        style="width: 40px; height: 40px; border-radius: 50%; background: var(--bg-color); flex-shrink: 0; overflow: hidden; border: 1px solid var(--border-color);">
                         {% if comment.user.profile_picture %}
                         <img src="{{ comment.user.profile_picture.url }}"
                             style="width: 100%; height: 100%; object-fit: cover;">
                         {% else %}
                         <div
-                            style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; font-size: 14px;">
+                            style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-primary); font-weight: bold; font-size: 14px;">
                             {{ comment.user.username|slice:":1"|upper }}</div>
                         {% endif %}
                     </div>
                     <div style="flex: 1;">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-                            <strong style="font-size: 14px; color: #fff;">{{ comment.user.username }}</strong>
+                            <strong style="font-size: 14px; color: var(--heading-color);">{{ comment.user.username
+                                }}</strong>
                             <span style="font-size: 12px; color: var(--text-secondary);">{{ comment.created_at|timesince
                                 }} ago</span>
                         </div>
-                        <p style="margin: 0; font-size: 14px; color: #ddd; line-height: 1.5;">{{ comment.content }}</p>
+                        <p style="margin: 0; font-size: 14px; color: var(--text-primary); line-height: 1.5;">{{
+                            comment.content }}</p>
                     </div>
                 </div>
                 {% empty %}
@@ -208,7 +210,7 @@
     <!-- RIGHT 25%: SUGGESTIONS PANEL -->
     <div style="flex: 1; max-width: 400px; min-width: 320px;">
         <div
-            style="background-color: #111; border-radius: 16px; padding: 24px; box-shadow: var(--shadow-md); border: 1px solid rgba(255,255,255,0.05); position: sticky; top: 94px; max-height: calc(100vh - 120px); overflow-y: auto;">
+            style="background-color: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-md); border: 1px solid var(--border-color); position: sticky; top: 94px; max-height: calc(100vh - 120px); overflow-y: auto;">
 
             {% if folder_items %}
             <div style="margin-bottom: 32px;">
@@ -219,21 +221,21 @@
                 <div style="display: flex; flex-direction: column; gap: 16px;">
                     {% for item in folder_items %}
                     <a href="{% url 'media-detail-page' item.id %}" class="v-sidebar-item"
-                        style="display: flex; align-items: center; gap: 16px; color: #fff; text-decoration: none; padding: 8px; border-radius: 12px; transition: all 0.3s;">
+                        style="display: flex; align-items: center; gap: 16px; color: var(--text-primary); text-decoration: none; padding: 8px; border-radius: 12px; transition: all 0.3s;">
                         <div class="v-sidebar-thumb"
-                            style="width: 90px; height: 90px; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; flex-shrink: 0; transition: transform 0.3s;">
+                            style="width: 90px; height: 90px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; flex-shrink: 0; transition: transform 0.3s;">
                             {% if item.media_type == 'IMAGE' and item.file %}
                             <img src="{{ item.file.url }}" style="width: 100%; height: 100%; object-fit: cover;">
                             {% elif item.thumbnail %}
                             <img src="{{ item.thumbnail.url }}" style="width: 100%; height: 100%; object-fit: cover;">
                             {% else %}
                             <div
-                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #444; font-weight: 800;">
+                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text-secondary); font-weight: 800;">
                                 {{ item.media_type|slice:":1" }}</div>
                             {% endif %}
                         </div>
                         <div style="flex: 1; min-width: 0;">
-                            <div style="font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #eee;"
+                            <div style="font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary);"
                                 title="{{ item.title }}">
                                 {{ item.title }}
                             </div>
@@ -246,7 +248,7 @@
                     {% endfor %}
                 </div>
             </div>
-            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 24px 0;">
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 24px 0;">
             {% endif %}
 
             <div>
@@ -258,21 +260,21 @@
                     {% if related_items %}
                     {% for item in related_items %}
                     <a href="{% url 'media-detail-page' item.id %}" class="v-sidebar-item"
-                        style="display: flex; gap: 16px; color: #fff; text-decoration: none; padding: 8px; border-radius: 12px; transition: all 0.3s; align-items: center;">
+                        style="display: flex; gap: 16px; color: var(--text-primary); text-decoration: none; padding: 8px; border-radius: 12px; transition: all 0.3s; align-items: center;">
                         <div class="v-sidebar-thumb"
-                            style="width: 90px; height: 56px; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; flex-shrink: 0; transition: transform 0.3s;">
+                            style="width: 90px; height: 56px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; flex-shrink: 0; transition: transform 0.3s;">
                             {% if item.media_type == 'IMAGE' and item.file %}
                             <img src="{{ item.file.url }}" style="width: 100%; height: 100%; object-fit: cover;">
                             {% elif item.thumbnail %}
                             <img src="{{ item.thumbnail.url }}" style="width: 100%; height: 100%; object-fit: cover;">
                             {% else %}
                             <div
-                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #222; color: #555; font-size: 12px; font-weight: 700;">
+                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--card-bg); color: var(--text-secondary); font-size: 12px; font-weight: 700;">
                                 {{ item.media_type|slice:":1" }}</div>
                             {% endif %}
                         </div>
                         <div style="flex: 1; min-width: 0;">
-                            <div style="font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #eee;"
+                            <div style="font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary);"
                                 title="{{ item.title }}">
                                 {{ item.title }}
                             </div>
@@ -286,19 +288,19 @@
                     {% else %}
                     {% for recent in recent_items %}
                     <a href="{% url 'media-detail-page' recent.id %}" class="v-sidebar-item"
-                        style="display: flex; gap: 16px; color: #fff; text-decoration: none; padding: 8px; border-radius: 12px; transition: all 0.3s; align-items: center;">
+                        style="display: flex; gap: 16px; color: var(--text-primary); text-decoration: none; padding: 8px; border-radius: 12px; transition: all 0.3s; align-items: center;">
                         <div class="v-sidebar-thumb"
-                            style="width: 90px; height: 56px; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; flex-shrink: 0; transition: transform 0.3s;">
+                            style="width: 90px; height: 56px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; flex-shrink: 0; transition: transform 0.3s;">
                             {% if recent.media_type == 'IMAGE' and recent.file %}
                             <img src="{{ recent.file.url }}" style="width: 100%; height: 100%; object-fit: cover;">
                             {% else %}
                             <div
-                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #222; color: #555; font-size: 11px;">
+                                style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--card-bg); color: var(--text-secondary); font-size: 11px;">
                                 {{ recent.media_type|slice:":1" }}</div>
                             {% endif %}
                         </div>
                         <div style="flex: 1; min-width: 0;">
-                            <div style="font-size: 13px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #eee;"
+                            <div style="font-size: 13px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary);"
                                 title="{{ recent.title }}">
                                 {{ recent.title }}
                             </div>
@@ -316,14 +318,7 @@
 </div>
 
 <style>
-    :root {
-        --card-bg: #1e1e1e;
-        --border-color: rgba(255, 255, 255, 0.08);
-        --accent-color: #3f51b5;
-        /* Standard material blue, adjust as needed */
-        --text-secondary: #aaa;
-    }
-
+    /* Detail Page Customizations */
     textarea:focus {
         border-color: var(--accent-color) !important;
         background: #222 !important;
@@ -427,6 +422,39 @@
         background: rgba(255, 255, 255, 0.1);
         border-radius: 10px;
     }
+
+    /* Action Buttons Theme Classes */
+    .v-action-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: var(--bg-color);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .v-action-btn.like-btn {
+        width: auto;
+        padding: 12px 20px;
+        font-weight: 700;
+        gap: 10px;
+    }
+
+    .v-action-btn.like-btn.active {
+        background: rgba(255, 75, 75, 0.15);
+        color: #ff4b4b;
+        border-color: #ff4b4b;
+    }
+
+    .v-action-btn.favorite-btn.active {
+        color: #FFD700;
+        border-color: #FFD700;
+    }
 </style>
 
 <script>
@@ -456,7 +484,7 @@
             window.open(data.url, '_blank');
             location.reload();
         } else {
-            alert(data.error);
+            showToast(data.error, 'error');
         }
     }
 
@@ -468,7 +496,7 @@
         if (res.ok) {
             location.reload();
         } else {
-            alert('Failed to update follow status');
+            showToast('Failed to update follow status', 'error');
         }
     }
 

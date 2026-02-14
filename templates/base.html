@@ -9,13 +9,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=3">
     <script>
-        // Immediate check to prevent flash of light theme
-        if (localStorage.getItem('theme') === 'dark') {
-            document.documentElement.classList.add('dark');
-            document.addEventListener("DOMContentLoaded", function () {
-                document.body.classList.add('dark');
-            });
-        }
+        (function () {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else if (savedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
     </script>
 </head>
 
@@ -188,14 +189,7 @@
 
     <div class="v-main-wrapper">
         <main class="container" style="flex: 1;">
-            {% if messages %}
-            {% for message in messages %}
-            <div class="v-card v-alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %}"
-                style="margin-bottom: 24px;">
-                {{ message }}
-            </div>
-            {% endfor %}
-            {% endif %}
+            <!-- Messages will be handled by Toast system -->
 
             {% block content %}
             {% endblock %}
@@ -367,7 +361,7 @@
                 if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i') e.preventDefault();
                 if (e.key === 'PrintScreen') {
                     enableProtection();
-                    alert('Privacy Warning: Screenshots and content capture are restricted on this platform.');
+                    if (isProtected) showToast('Privacy Warning: Screenshots and content capture are restricted on this platform.', 'info');
                     setTimeout(disableProtection, 2000);
                 }
             });
@@ -430,20 +424,32 @@
 
         // Apply theme on load
         document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
             let userPref = null;
+
             if (document.body.getAttribute('data-is-authenticated') === 'true') {
                 userPref = document.body.getAttribute('data-theme-preference');
             }
 
+            // Priority: userPref (server setting) > localStorage (last session cache)
+            // If user explicitly set a preference in DB, we should respect it
             if (userPref) {
-                if (userPref === 'DARK') document.body.classList.add('dark');
+                const isDark = (userPref === 'DARK');
+                if (isDark) document.body.classList.add('dark');
                 else document.body.classList.remove('dark');
-            } else {
-                const savedTheme = localStorage.getItem('theme');
-                if (savedTheme === 'dark') {
-                    document.body.classList.add('dark');
-                }
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            } else if (savedTheme) {
+                if (savedTheme === 'dark') document.body.classList.add('dark');
+                else document.body.classList.remove('dark');
             }
+
+            // Sync documentElement just in case
+            if (document.body.classList.contains('dark')) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
             updateThemeIcons();
         });
 
@@ -513,11 +519,11 @@
                     location.reload();
                 } else {
                     const data = await response.json();
-                    alert(data.error || 'Bulk delete failed');
+                    showToast(data.error || 'Bulk delete failed', 'error');
                 }
             } catch (err) {
                 console.error(err);
-                alert('Something went wrong');
+                showToast('Something went wrong', 'error');
             }
         }
 
@@ -810,7 +816,7 @@
                     if (location.pathname.includes('profile') || location.pathname.includes('folder')) {
                         location.reload();
                     } else {
-                        alert('Uploads completed.');
+                        showToast('Uploads completed successfully!', 'success');
                         closeUploadModal();
                     }
                 }, 500);
@@ -880,10 +886,10 @@
                     headers: { 'X-CSRFToken': '{{ csrf_token }}' }
                 });
                 if (res.ok) {
-                    alert('Follow request accepted!');
+                    showToast('Follow request accepted!', 'success');
                     location.reload();
                 } else {
-                    alert('Failed to accept follow request.');
+                    showToast('Failed to accept follow request.', 'error');
                 }
             } catch (err) {
                 console.error(err);
@@ -903,7 +909,53 @@
                 console.error(err);
             }
         }
+
+        // --- Toast System ---
+        function showToast(message, type = 'success', title = '') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `v-toast v-toast-${type}`;
+
+            let icon = 'fa-check-circle';
+            if (type === 'error') icon = 'fa-exclamation-circle';
+            if (type === 'info') icon = 'fa-info-circle';
+
+            if (!title) {
+                title = type.charAt(0).toUpperCase() + type.slice(1);
+            }
+
+            toast.innerHTML = `
+                <div class="v-toast-icon">
+                    <i class="fas ${icon}"></i>
+                </div>
+                <div class="v-toast-content">
+                    <div class="v-toast-title">${title}</div>
+                    <div class="v-toast-message">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto remove
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Initialize Django Messages as Toasts
+        document.addEventListener('DOMContentLoaded', () => {
+            {% if messages %}
+            {% for message in messages %}
+            showToast("{{ message|escapejs }}", "{% if message.tags == 'error' %}error{% elif message.tags == 'info' %}info{% else %}success{% endif %}");
+            {% endfor %}
+            {% endif %}
+        });
     </script>
+
+    <div id="toast-container" class="v-toast-container"></div>
 </body>
 
 </html>

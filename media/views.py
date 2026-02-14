@@ -117,12 +117,18 @@ def media_detail(request, pk):
     comment_form = ReviewForm()
     comments = Review.objects.filter(media_item=media).select_related('user').order_by('-created_at')
 
-    # Log View
-    if request.user.is_authenticated:
-        MediaView.objects.get_or_create(user=request.user, media_item=media)
-    
-    media.views_count += 1
-    media.save()
+    # Log View (Unique per session/user)
+    view_key = f'viewed_media_{media.id}'
+    if not request.session.get(view_key):
+        if request.user.is_authenticated:
+            viewed, created = MediaView.objects.get_or_create(user=request.user, media_item=media)
+            if created:
+                media.views_count += 1
+                media.save()
+        else:
+            media.views_count += 1
+            media.save()
+        request.session[view_key] = True
 
     # Suggestions: Similar items (same category or same type)
     related_items = MediaItem.objects.filter(
@@ -155,7 +161,7 @@ def media_detail(request, pk):
     prev_item = qs.filter(id__lt=media.id).last()
 
     return render(request, 'media/detail.html', {
-        'media': media, 'comments': comments, 'comment_form': comment_form, 
+        'media': media, 'media_item': media, 'media_comments': comments, 'comment_form': comment_form, 
         'is_owner': is_owner, 'related_items': related_items,
         'folder_items': folder_items, 'recent_items': recent_uploads,
         'next_item': next_item, 'prev_item': prev_item,

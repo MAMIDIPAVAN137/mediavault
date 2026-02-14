@@ -62,14 +62,7 @@
                 </div>
             </div>
 
-            {% if messages %}
-            {% for message in messages %}
-            <div class="v-card v-alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %}"
-                style="margin-bottom: 24px;">
-                {{ message }}
-            </div>
-            {% endfor %}
-            {% endif %}
+            <!-- Messages handled by base.html Toast system -->
 
             <div class="v-stats-grid" style="margin-bottom: 24px;">
                 <div class="v-stat-card" style="cursor: pointer;"
@@ -753,76 +746,78 @@
     }
 </script>
 
-    <!-- Password Verification Modal for Hidden Content -->
-    <div id="hidden-password-modal" class="v-modal-overlay">
-        <div class="v-modal-content" style="max-width: 400px; padding: 32px; text-align: center;">
-            <div
-                style="width: 64px; height: 64px; background: rgba(91, 95, 199, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--accent-color); margin: 0 auto 24px auto; font-size: 24px;">
-                <i class="fas fa-user-lock"></i>
-            </div>
-            <h3 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 800;">Restricted Access</h3>
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Please enter your account password to unlock hidden items.</p>
-            
-            <input type="password" id="hidden-vault-pass" class="fluent-input" placeholder="Enter password" style="margin-bottom: 20px; text-align: center;">
-            
-            <div style="display: flex; gap: 12px;">
-                <button onclick="closeHiddenModal()" class="v-btn v-btn-secondary" style="flex: 1;">Cancel</button>
-                <button onclick="unlockHiddenVault()" class="v-btn v-btn-primary" style="flex: 1;">Unlock</button>
-            </div>
+<!-- Password Verification Modal for Hidden Content -->
+<div id="hidden-password-modal" class="v-modal-overlay">
+    <div class="v-modal-content" style="max-width: 400px; padding: 32px; text-align: center;">
+        <div
+            style="width: 64px; height: 64px; background: rgba(91, 95, 199, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--accent-color); margin: 0 auto 24px auto; font-size: 24px;">
+            <i class="fas fa-user-lock"></i>
+        </div>
+        <h3 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 800;">Restricted Access</h3>
+        <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Please enter your account
+            password to unlock hidden items.</p>
+
+        <input type="password" id="hidden-vault-pass" class="fluent-input" placeholder="Enter password"
+            style="margin-bottom: 20px; text-align: center;">
+
+        <div style="display: flex; gap: 12px;">
+            <button onclick="closeHiddenModal()" class="v-btn v-btn-secondary" style="flex: 1;">Cancel</button>
+            <button onclick="unlockHiddenVault()" class="v-btn v-btn-primary" style="flex: 1;">Unlock</button>
         </div>
     </div>
+</div>
 
-    <script>
-        let hasUnlockedHidden = false;
-        let pendingHiddenTab = null;
+<script>
+    let hasUnlockedHidden = false;
+    let pendingHiddenTab = null;
 
-        function showHiddenTab(btn) {
-            if (hasUnlockedHidden) {
-                showTab('hidden', btn);
-                return;
+    function showHiddenTab(btn) {
+        if (hasUnlockedHidden) {
+            showTab('hidden', btn);
+            return;
+        }
+        pendingHiddenTab = btn;
+        document.getElementById('hidden-password-modal').classList.add('active');
+        document.getElementById('hidden-vault-pass').focus();
+    }
+
+    function closeHiddenModal() {
+        document.getElementById('hidden-password-modal').classList.remove('active');
+        document.getElementById('hidden-vault-pass').value = '';
+        pendingHiddenTab = null;
+    }
+
+    async function unlockHiddenVault() {
+        const pass = document.getElementById('hidden-vault-pass').value;
+        if (!pass) return;
+
+        try {
+            const res = await fetch('{% url "verify-password" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'password=' + encodeURIComponent(pass)
+            });
+
+            if (res.ok) {
+                hasUnlockedHidden = true;
+                if (pendingHiddenTab) showTab('hidden', pendingHiddenTab);
+                closeHiddenModal();
+            } else {
+                const data = await res.json();
+                alert(data.message || 'Incorrect password. Access denied.');
             }
-            pendingHiddenTab = btn;
-            document.getElementById('hidden-password-modal').classList.add('active');
-            document.getElementById('hidden-vault-pass').focus();
+        } catch (err) {
+            console.error(err);
+            alert('An error occurred. Please try again.');
         }
+    }
 
-        function closeHiddenModal() {
-            document.getElementById('hidden-password-modal').classList.remove('active');
-            document.getElementById('hidden-vault-pass').value = '';
-            pendingHiddenTab = null;
-        }
-
-        async function unlockHiddenVault() {
-            const pass = document.getElementById('hidden-vault-pass').value;
-            if (!pass) return;
-
-            try {
-                const res = await fetch('{% url "verify-password" %}', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: 'password=' + encodeURIComponent(pass)
-                });
-
-                if (res.ok) {
-                    hasUnlockedHidden = true;
-                    if (pendingHiddenTab) showTab('hidden', pendingHiddenTab);
-                    closeHiddenModal();
-                } else {
-                    const data = await res.json();
-                    alert(data.message || 'Incorrect password. Access denied.');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('An error occurred. Please try again.');
-            }
-        }
-
-        // Allow Enter key in password input
-        document.getElementById('hidden-vault-pass').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') unlockHiddenVault();
-        });
-    </script>
+    // Allow Enter key in password input
+    document.getElementById('hidden-vault-pass').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') unlockHiddenVault();
+    });
+</script>
 {% endblock %}

@@ -25,7 +25,14 @@ SECRET_KEY = 'django-insecure-h_*8r+-+31iz*km4e_t3kgip#$q^*&mac3dd@@)&=&ltbvjx)g
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.pythonanywhere.com', '*']
+
+# CSRF settings for deployment
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'https://*.pythonanywhere.com',
+]
 
 
 # Application definition
@@ -122,6 +129,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media_root'

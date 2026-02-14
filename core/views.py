@@ -135,10 +135,40 @@ def edit_profile(request):
     if request.method == 'POST':
         form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user, user=request.user)
         if form.is_valid():
-            form.save(); messages.success(request, "Profile updated."); return redirect('profile')
+            user = form.save()
+            # Handle allowed downloaders
+            allowed_ids = request.POST.getlist('allowed_downloaders')
+            user.allowed_downloaders.set(allowed_ids)
+            messages.success(request, "Profile updated.")
+            return redirect('profile')
     else:
         form = ProfileUpdateForm(instance=request.user, user=request.user)
-    return render(request, 'core/edit_profile.html', {'form': form})
+    
+    context = {
+        'form': form,
+        'allowed_users': request.user.allowed_downloaders.all()
+    }
+    return render(request, 'core/edit_profile.html', context)
+
+@login_required
+def search_users(request):
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'users': []})
+    
+    users = User.objects.filter(
+        Q(username__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q)
+    ).exclude(id=request.user.id)[:10]
+    
+    results = []
+    for u in users:
+        results.append({
+            'id': u.id,
+            'username': u.username,
+            'full_name': f"{u.first_name} {u.last_name}",
+            'avatar': u.profile_picture.url if u.profile_picture else None
+        })
+    return JsonResponse({'users': results})
 
 @login_required
 def delete_account(request):

@@ -64,7 +64,7 @@ class ProfileUpdateForm(forms.ModelForm):
             
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'phone_number', 'gender', 'profile_picture', 'bio']
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'gender', 'profile_picture', 'bio', 'download_preference', 'theme_preference']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'v-auth-input'}),
             'last_name': forms.TextInput(attrs={'class': 'v-auth-input'}),
@@ -73,6 +73,8 @@ class ProfileUpdateForm(forms.ModelForm):
             'gender': forms.Select(attrs={'class': 'v-auth-input'}),
             'profile_picture': forms.ClearableFileInput(attrs={'class': 'v-auth-input'}),
             'bio': forms.Textarea(attrs={'class': 'v-auth-input', 'rows': 3}),
+            'download_preference': forms.Select(attrs={'class': 'v-auth-input'}),
+            'theme_preference': forms.Select(attrs={'class': 'v-auth-input'}),
         }
 
 class AdminUserUpdateForm(forms.ModelForm):
@@ -85,13 +87,15 @@ class AdminUserUpdateForm(forms.ModelForm):
     
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'phone_number', 'gender', 'is_uploader']
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'gender', 'is_uploader', 'download_preference', 'theme_preference']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'v-auth-input'}),
             'last_name': forms.TextInput(attrs={'class': 'v-auth-input'}),
             'email': forms.EmailInput(attrs={'class': 'v-auth-input'}),
             'phone_number': forms.TextInput(attrs={'class': 'v-auth-input'}),
             'gender': forms.Select(attrs={'class': 'v-auth-input'}),
+            'download_preference': forms.Select(attrs={'class': 'v-auth-input'}),
+            'theme_preference': forms.Select(attrs={'class': 'v-auth-input'}),
         }
         help_texts = {
             'is_uploader': "Designates whether the user can upload files and create folders.",
